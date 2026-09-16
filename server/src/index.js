@@ -9,7 +9,14 @@ import { seedSuperAdmin } from "./auth/seed.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  await seedSuperAdmin();
+  // A MySQL outage (e.g. the Managed Identity -> AAD MySQL user mapping not being fully
+  // wired up yet) must not take the whole app down - health/config endpoints and the
+  // static frontend should stay reachable for diagnosis even if the DB is unavailable.
+  try {
+    await seedSuperAdmin();
+  } catch (err) {
+    console.error("Super Admin seed failed at startup (continuing without it):", err.message);
+  }
 
   const app = createApp();
 
