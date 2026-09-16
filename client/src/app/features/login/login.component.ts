@@ -60,8 +60,12 @@ export class LoginComponent {
       const result = await msal.loginPopup({ scopes: [] });
       await this.auth.exchangeAzureAdToken(result.idToken);
       this.router.navigateByUrl('/');
-    } catch {
-      this.error.set('Microsoft sign-in failed.');
+    } catch (err: any) {
+      // Deliberately verbose while AAD sign-in is still being wired up - swap for a
+      // generic message once this is fully working end-to-end.
+      console.error('Microsoft sign-in failed:', err);
+      const detail = err?.errorMessage || err?.message || String(err);
+      this.error.set(`Microsoft sign-in failed: ${detail}`);
     } finally {
       this.loading.set(false);
     }
