@@ -60,12 +60,12 @@ export class LoginComponent {
       const result = await msal.loginPopup({ scopes: [] });
       await this.auth.exchangeAzureAdToken(result.idToken);
       this.router.navigateByUrl('/');
-    } catch (err: any) {
-      // Deliberately verbose while AAD sign-in is still being wired up - swap for a
-      // generic message once this is fully working end-to-end.
+    } catch (err) {
+      // Full detail stays server-side only (Security Checklist E5) - console.error is
+      // fine since it never leaves the user's own browser, but the on-screen message
+      // must not repeat internal library/error detail.
       console.error('Microsoft sign-in failed:', err);
-      const detail = err?.errorMessage || err?.message || String(err);
-      this.error.set(`Microsoft sign-in failed: ${detail}`);
+      this.error.set('Microsoft sign-in failed. Please try again.');
     } finally {
       this.loading.set(false);
     }

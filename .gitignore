@@ -11,3 +11,4 @@ Thumbs.db
 coverage/
 .angular/
 server/uploads-tmp/
+.claude/ralph-loop.local.md

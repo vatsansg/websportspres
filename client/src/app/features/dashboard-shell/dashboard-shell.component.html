@@ -1,8 +1,12 @@
 <div class="wtt-shell">
   <header class="wtt-shell-header">
-    <h1>WTT Asset Management</h1>
+    <div class="wtt-shell-brand">
+      <span class="wtt-shell-brand__square"></span>
+      <h1>WTT Asset Management</h1>
+    </div>
     <div class="wtt-shell-user">
-      <span>{{ auth.currentUser()?.username }} &middot; {{ auth.currentUser()?.role }}</span>
+      <span class="wtt-shell-username">{{ auth.currentUser()?.username }}</span>
+      <span class="wtt-tag">{{ auth.currentUser()?.role }}</span>
       @if (auth.currentUser()?.role === 'SuperAdmin') {
         <a routerLink="/change-password">Change Password</a>
       }
@@ -12,10 +16,10 @@
 
   <main class="wtt-shell-main">
     <div class="wtt-card">
-      <h2>You're signed in.</h2>
+      <h2>You're Signed In</h2>
       <p>
         Event creation, asset upload, and the full dashboard are built in the steps that
-        follow this one - this page confirms Step 1's authentication and role framework
+        follow this one — this page confirms Step 1's authentication and role framework
         is working end-to-end.
       </p>
     </div>

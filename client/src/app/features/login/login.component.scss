@@ -1,9 +1,33 @@
 .wtt-login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 1.5rem;
+  gap: 1.5rem;
+  background: radial-gradient(circle at 50% 0%, #141414 0%, #000 65%);
+}
+
+.wtt-login-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wtt-login-mark__square {
+  width: 14px;
+  height: 14px;
+  background: var(--wtt-orange);
+  border-radius: 3px;
+}
+
+.wtt-login-mark__text {
+  font-family: var(--wtt-font-display);
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  color: var(--wtt-white);
 }
 
 .wtt-login-card {
@@ -11,10 +35,14 @@
   max-width: 380px;
 }
 
+.wtt-login-card h1 {
+  font-size: 1.5rem;
+}
+
 .wtt-subtitle {
-  opacity: 0.75;
+  opacity: 0.6;
   font-size: 0.9rem;
-  margin-bottom: 1.5rem;
+  margin: 0 0 1.75rem;
 }
 
 .wtt-cta {
@@ -23,20 +51,43 @@
 
 .wtt-cta--secondary {
   background: transparent;
-  border: 1px solid var(--wtt-blue);
   color: var(--wtt-blue);
+  border: 1px solid rgba(0, 122, 217, 0.5);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(0, 122, 217, 0.08);
+  box-shadow: none;
+  border-color: var(--wtt-blue);
 }
 
 .wtt-divider {
+  display: flex;
+  align-items: center;
   text-align: center;
-  opacity: 0.5;
-  font-size: 0.8rem;
-  margin: 1.25rem 0;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 1.5rem 0;
+}
+
+.wtt-divider::before,
+.wtt-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--wtt-border);
+}
+
+.wtt-divider span {
+  padding: 0 0.75rem;
 }
 
 .wtt-hint {
-  font-size: 0.8rem;
-  opacity: 0.6;
-  margin-top: 0.75rem;
+  font-size: 0.78rem;
+  opacity: 0.5;
+  margin: 0.85rem 0 0;
   text-align: center;
 }

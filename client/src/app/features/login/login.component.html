@@ -1,12 +1,24 @@
 <div class="wtt-login-page">
+  <div class="wtt-login-mark">
+    <span class="wtt-login-mark__square"></span>
+    <span class="wtt-login-mark__text">WTT</span>
+  </div>
+
   <div class="wtt-card wtt-login-card">
-    <h1>WTT Asset Management</h1>
+    <h1>Asset Management</h1>
     <p class="wtt-subtitle">Sign in to upload and manage LED assets.</p>
 
-    <form (ngSubmit)="signInLocal()" #f="ngForm">
+    <form (ngSubmit)="signInLocal()" #f="ngForm" novalidate>
       <div class="wtt-field">
         <label for="username">Username</label>
-        <input id="username" name="username" [(ngModel)]="username" required autocomplete="username" />
+        <input
+          id="username"
+          name="username"
+          [(ngModel)]="username"
+          required
+          autocomplete="username"
+          placeholder="e.g. first_time_admin"
+        />
       </div>
       <div class="wtt-field">
         <label for="password">Password</label>
@@ -21,13 +33,18 @@
       </div>
 
       @if (error()) {
-        <p class="wtt-error">{{ error() }}</p>
+        <p class="wtt-error" role="alert">{{ error() }}</p>
       }
 
-      <button class="wtt-cta" type="submit" [disabled]="loading() || f.invalid">Sign In</button>
+      <button class="wtt-cta" type="submit" [disabled]="loading() || f.invalid">
+        @if (loading()) {
+          <span class="wtt-spinner" aria-hidden="true"></span>
+        }
+        Sign In
+      </button>
     </form>
 
-    <div class="wtt-divider">or</div>
+    <div class="wtt-divider"><span>or</span></div>
 
     <button
       class="wtt-cta wtt-cta--secondary"

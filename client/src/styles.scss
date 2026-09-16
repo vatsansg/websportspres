@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap");
 
 :root {
   --wtt-black: #000000;
@@ -12,8 +12,20 @@
   --wtt-font-display: "Roboto", "Helvetica Neue", Arial, sans-serif;
   --wtt-font-body: "Bio Sans", "Inter", system-ui, -apple-system, sans-serif;
 
-  --wtt-radius: 6px;
-  --wtt-error: #ff4d4d;
+  --wtt-surface: #0a0a0a;
+  --wtt-surface-raised: #131313;
+  --wtt-border: #232323;
+  --wtt-radius: 8px;
+  --wtt-radius-sm: 5px;
+  --wtt-error: #ff5252;
+  --wtt-success: #2babd2;
+
+  --wtt-space-1: 0.25rem;
+  --wtt-space-2: 0.5rem;
+  --wtt-space-3: 0.75rem;
+  --wtt-space-4: 1rem;
+  --wtt-space-6: 1.5rem;
+  --wtt-space-8: 2rem;
 }
 
 * {
@@ -28,6 +40,7 @@ body {
   color: var(--wtt-white);
   font-family: var(--wtt-font-body);
   height: 100%;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -36,74 +49,185 @@ h3 {
   font-family: var(--wtt-font-display);
   font-weight: 700;
   text-transform: capitalize;
-  letter-spacing: 0.02em;
-  margin: 0 0 0.5em;
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--wtt-space-2);
+  line-height: 1.15;
 }
+
+p {
+  line-height: 1.5;
+}
+
+/* ---------- Buttons ---------- */
 
 button.wtt-cta {
   background: var(--wtt-orange);
   color: var(--wtt-black);
   border: none;
-  border-radius: var(--wtt-radius);
+  border-radius: var(--wtt-radius-sm);
   font-family: var(--wtt-font-body);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wtt-space-2);
 }
 
 button.wtt-cta:hover:not(:disabled) {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35);
+}
+
+button.wtt-cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+button.wtt-cta:focus-visible {
+  outline: 2px solid var(--wtt-white);
+  outline-offset: 2px;
 }
 
 button.wtt-cta:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Spinner shown inside a wtt-cta button while a request is in flight. */
+.wtt-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-top-color: var(--wtt-black);
+  border-radius: 50%;
+  animation: wtt-spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes wtt-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 a {
   color: var(--wtt-blue);
+  text-decoration: none;
 }
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Form fields ---------- */
 
 .wtt-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
+  gap: var(--wtt-space-2);
+  margin-bottom: var(--wtt-space-4);
 }
 
 .wtt-field label {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--wtt-white);
-  opacity: 0.85;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .wtt-field input {
   background: #111;
-  border: 1px solid #333;
-  border-radius: var(--wtt-radius);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
   color: var(--wtt-white);
   font-family: var(--wtt-font-body);
-  padding: 0.6rem 0.75rem;
+  padding: 0.7rem 0.85rem;
   font-size: 1rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.wtt-field input:hover:not(:focus) {
+  border-color: #3a3a3a;
 }
 
 .wtt-field input:focus {
-  outline: 2px solid var(--wtt-teal);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--wtt-teal);
+  background: #141414;
+  box-shadow: 0 0 0 3px rgba(43, 171, 210, 0.18);
+}
+
+/* Browser autofill forces its own light background; override so it stays on-brand. */
+.wtt-field input:-webkit-autofill,
+.wtt-field input:-webkit-autofill:hover,
+.wtt-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--wtt-white);
+  -webkit-box-shadow: 0 0 0 1000px #111 inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.wtt-field-hint {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ---------- Status messages ---------- */
+
+.wtt-error,
+.wtt-success {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+  font-size: 0.85rem;
+  padding: var(--wtt-space-3);
+  border-radius: var(--wtt-radius-sm);
+  margin: 0 0 var(--wtt-space-4);
 }
 
 .wtt-error {
   color: var(--wtt-error);
-  font-size: 0.85rem;
+  background: rgba(255, 82, 82, 0.1);
+  border: 1px solid rgba(255, 82, 82, 0.3);
 }
 
+.wtt-success {
+  color: var(--wtt-success);
+  background: rgba(43, 171, 210, 0.1);
+  border: 1px solid rgba(43, 171, 210, 0.3);
+}
+
+/* ---------- Card ---------- */
+
 .wtt-card {
-  background: #0a0a0a;
-  border: 1px solid #1f1f1f;
+  background: var(--wtt-surface);
+  border: 1px solid var(--wtt-border);
+  border-top: 3px solid var(--wtt-orange);
   border-radius: 10px;
-  padding: 2rem;
+  padding: var(--wtt-space-8);
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- Tags (teal, per brand: category/status badges) ---------- */
+
+.wtt-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wtt-teal);
+  background: rgba(43, 171, 210, 0.12);
+  border: 1px solid rgba(43, 171, 210, 0.35);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
 }
