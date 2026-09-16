@@ -2,23 +2,31 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 
-// MSAL's loginPopup() works by having the OPENER window poll this popup's own
-// location.href once Azure AD redirects it back to our origin, reading the
-// auth response straight out of the URL fragment. If Angular bootstraps and
-// its Router runs its own initial navigation/URL normalization in that popup
-// first, it can strip or rewrite that fragment before the opener ever reads
-// it - which is exactly what was happening (the popup sat on the static
-// "Completing sign-in..." placeholder forever, and the opener's loginPopup()
-// call timed out). Detect that exact situation and skip bootstrapping Angular
-// entirely, leaving the URL/fragment completely untouched for the opener.
-function isPopupCompletingAuthResponse(): boolean {
-  const inPopup = !!window.opener && window.opener !== window;
-  const hasAuthResponseInHash = /[#&](code|id_token|access_token|error)=/.test(
-    window.location.hash
+// @azure/msal-browser v5's popup flow does NOT work by the opener polling this
+// popup's location.href (that was an older MSAL version's mechanism, and my
+// first fix here was based on that wrong assumption). This version requires
+// the redirect URI page itself to parse the auth response and broadcast it
+// back to the window that called loginPopup() over a BroadcastChannel - see
+// @azure/msal-browser/redirect-bridge's broadcastResponseToMainFrame(), which
+// also transparently handles the loginRedirect() case (navigates home
+// instead of broadcasting) if we ever add that flow. Angular must not touch
+// the URL before this runs, so this happens instead of bootstrapping Angular
+// on this one route, not alongside it.
+function hasAuthResponseInUrl(): boolean {
+  return /[#&?](code|id_token|access_token|error)=/.test(
+    window.location.hash + window.location.search
   );
-  return inPopup && hasAuthResponseInHash;
 }
 
-if (!isPopupCompletingAuthResponse()) {
-  bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+async function main() {
+  if (window.location.pathname === '/auth/callback' && hasAuthResponseInUrl()) {
+    const { broadcastResponseToMainFrame } = await import(
+      '@azure/msal-browser/redirect-bridge'
+    );
+    await broadcastResponseToMainFrame();
+    return;
+  }
+  await bootstrapApplication(App, appConfig);
 }
+
+main().catch((err) => console.error('Bootstrap failed:', err));
