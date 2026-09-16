@@ -7,7 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
 </head>
-<body>
-  <app-root></app-root>
+<body style="background:#000;color:#fff;font-family:sans-serif">
+  <!-- Static fallback for the Microsoft sign-in popup: main.ts deliberately does not
+       bootstrap Angular into app-root when this page is completing an AAD popup auth
+       response, so this plain text is what actually shows while the opener window
+       reads the result and closes this popup - see main.ts for why. -->
+  <app-root>Completing sign-in...</app-root>
 </body>
 </html>
