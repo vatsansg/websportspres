@@ -1,0 +1,30 @@
+.wtt-shell-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #1f1f1f;
+}
+
+.wtt-shell-header h1 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.wtt-shell-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.wtt-cta--small {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.8rem;
+}
+
+.wtt-shell-main {
+  padding: 2rem 1.5rem;
+  max-width: 640px;
+}

@@ -1,0 +1,18 @@
+{
+  "name": "wtt-asset-management-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WTT Asset Management web application - LED asset upload for Sponsor Ads and OVR Match Triggers.",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run start --workspace=client",
+    "build:client": "npm run build --workspace=client",
+    "start": "npm run start --workspace=server",
+    "test:server": "npm run test --workspace=server"
+  },
+  "license": "UNLICENSED"
+}

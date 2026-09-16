@@ -1,0 +1,109 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap");
+
+:root {
+  --wtt-black: #000000;
+  --wtt-white: #ffffff;
+  --wtt-orange: #ff6b00;
+  --wtt-blue: #007ad9;
+  --wtt-teal: #2babd2;
+
+  /* Bio Sans is WTT's licensed brand font and is not publicly hosted - this stack is the
+     documented fallback until WTT supplies the font files to self-host. */
+  --wtt-font-display: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --wtt-font-body: "Bio Sans", "Inter", system-ui, -apple-system, sans-serif;
+
+  --wtt-radius: 6px;
+  --wtt-error: #ff4d4d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--wtt-black);
+  color: var(--wtt-white);
+  font-family: var(--wtt-font-body);
+  height: 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--wtt-font-display);
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5em;
+}
+
+button.wtt-cta {
+  background: var(--wtt-orange);
+  color: var(--wtt-black);
+  border: none;
+  border-radius: var(--wtt-radius);
+  font-family: var(--wtt-font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+button.wtt-cta:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+button.wtt-cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+a {
+  color: var(--wtt-blue);
+}
+
+.wtt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.wtt-field label {
+  font-size: 0.85rem;
+  color: var(--wtt-white);
+  opacity: 0.85;
+}
+
+.wtt-field input {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: var(--wtt-radius);
+  color: var(--wtt-white);
+  font-family: var(--wtt-font-body);
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+}
+
+.wtt-field input:focus {
+  outline: 2px solid var(--wtt-teal);
+  outline-offset: 1px;
+}
+
+.wtt-error {
+  color: var(--wtt-error);
+  font-size: 0.85rem;
+}
+
+.wtt-card {
+  background: #0a0a0a;
+  border: 1px solid #1f1f1f;
+  border-radius: 10px;
+  padding: 2rem;
+}

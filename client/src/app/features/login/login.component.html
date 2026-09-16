@@ -1,0 +1,45 @@
+<div class="wtt-login-page">
+  <div class="wtt-card wtt-login-card">
+    <h1>WTT Asset Management</h1>
+    <p class="wtt-subtitle">Sign in to upload and manage LED assets.</p>
+
+    <form (ngSubmit)="signInLocal()" #f="ngForm">
+      <div class="wtt-field">
+        <label for="username">Username</label>
+        <input id="username" name="username" [(ngModel)]="username" required autocomplete="username" />
+      </div>
+      <div class="wtt-field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          [(ngModel)]="password"
+          required
+          autocomplete="current-password"
+        />
+      </div>
+
+      @if (error()) {
+        <p class="wtt-error">{{ error() }}</p>
+      }
+
+      <button class="wtt-cta" type="submit" [disabled]="loading() || f.invalid">Sign In</button>
+    </form>
+
+    <div class="wtt-divider">or</div>
+
+    <button
+      class="wtt-cta wtt-cta--secondary"
+      type="button"
+      [disabled]="loading()"
+      (click)="signInWithMicrosoft()"
+    >
+      Sign In With Microsoft
+    </button>
+
+    @if (!azureAdConfigured()) {
+      <p class="wtt-hint">Microsoft sign-in is not yet configured for this environment.</p>
+    }
+  </div>
+</div>
