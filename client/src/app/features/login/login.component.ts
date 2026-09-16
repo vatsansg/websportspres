@@ -52,8 +52,13 @@ export class LoginComponent {
       }
       const msal = createMsalInstance(runtimeConfig);
       await msal.initialize();
-      const result = await msal.loginPopup({ scopes: ['User.Read'] });
-      await this.auth.exchangeAzureAdToken(result.accessToken);
+      // openid/profile (implicit defaults) get us an ID token audienced to our own app
+      // (aud = clientId) with the roles claim - that's what the backend validates
+      // (src/auth/azureAdAuth.js). Do NOT request a Graph scope like User.Read here:
+      // that would return an access token audienced to Graph instead, which the
+      // backend's audience check would always reject.
+      const result = await msal.loginPopup({ scopes: [] });
+      await this.auth.exchangeAzureAdToken(result.idToken);
       this.router.navigateByUrl('/');
     } catch {
       this.error.set('Microsoft sign-in failed.');
