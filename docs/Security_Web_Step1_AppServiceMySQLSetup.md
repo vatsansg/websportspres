@@ -68,7 +68,7 @@ Completed 2026-09-16. Environment: `app-sportspres-assetmgmt` (+ `dev` slot), `m
 | # | Item | Status | Notes |
 |---|---|---|---|
 | H1 | No known-critical vulnerabilities in newly added dependencies | Pass | `npm audit` (production dependencies): **0 vulnerabilities** in both `server/` and `client/`. Angular was deliberately pinned to v20 (not the newest v21) specifically because v19.x had 3 high-severity CVEs (XSS/DoS) not yet backported at the time of this build; v20 is patched. Dev-only tooling vulnerabilities (babel/postcss, build-time only) were fixed via `npm audit fix`. |
-| H2 | Runtime versions are supported/patched, not end-of-life | Pass | Node 24 LTS (App Service runtime `NODE:24-lts`, matches local dev Node v24.13.0). MySQL 8.0.21 on Flexible Server — current supported version. |
+| H2 | Runtime versions are supported/patched, not end-of-life | Pass | Node 24 LTS (App Service runtime `NODE:24-lts`, matches local dev Node v24.13.0). MySQL upgraded from 8.0.21 to **8.4.9 LTS** on 2026-09-16 (Azure flagged 8.0's standard support ending 2026-12-31; upgraded now while no real event data exists, per user's decision). |
 
 ## Sign-off
 
