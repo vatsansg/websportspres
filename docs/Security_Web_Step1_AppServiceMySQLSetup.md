@@ -23,7 +23,7 @@ Completed 2026-09-16. Environment: `app-sportspres-assetmgmt` (+ `dev` slot), `m
 
 | # | Item | Status | Notes |
 |---|---|---|---|
-| C1 | All traffic to/from the App Service is HTTPS only | Pass | `httpsOnly: true` confirmed on both slots (Azure default, verified not overridden). |
+| C1 | All traffic to/from the App Service is HTTPS only | **Fail, then Fixed 2026-09-16** | **Independent architect review caught this originally marked "Pass" incorrectly.** Live check (`az webapp show --query httpsOnly`) showed `false` on both slots — the checklist's own assumption that this was "the Azure default" was itself wrong; Azure's actual default for a new App Service is `httpsOnly: false`. This was a real, live gap (plain HTTP was being accepted) until fixed via `az webapp update --https-only true` on both slots, re-verified `true` on both, and confirmed plain `http://` now 301-redirects to `https://`. |
 | C2 | MySQL connection enforces TLS/SSL | Pass | Every connection path (`pool.js`, `migrate.mjs`, bootstrap/admin scripts) sets `ssl: { minVersion: "TLSv1.2" }`. |
 | C3 | MySQL network access is restricted (private endpoint/VNet integration, or a documented, minimal firewall rule set) rather than open to all Azure services/all IPs by default | Pass, per approved decision | User explicitly chose firewall rules over VNet/private endpoint for this stage (documented in workflow.md). Rule set: `AllowAllAzureServicesAndResourcesWithinAzureIps` (the standard Azure-services rule) plus one rule for the developer's own IP (for admin/migration scripts) — no `0.0.0.0.0-255.255.255.255` open-to-internet rule exists. |
 | C4 | CORS configuration on the App Service, if applicable, is restricted to known origins, not `*` | Pass | `src/app.js` uses an explicit allowlist (`CORS_ORIGIN`, defaults to `http://localhost:4200` only). No wildcard. In production, Angular and the API share one origin, so CORS is largely moot there. |
@@ -46,6 +46,7 @@ Completed 2026-09-16. Environment: `app-sportspres-assetmgmt` (+ `dev` slot), `m
 | E3 | Filenames validated to prevent path traversal | N/A at this stage | No file upload yet. |
 | E4 | Session/authentication tokens are handled securely | Pass | Session is an httpOnly cookie (`secure` in production, `sameSite: lax`), signed JWT, 12-hour expiry. Not accessible to client-side JS. |
 | E5 | Error messages returned to the client do not leak internal details | Pass | `src/middleware/errorHandler.js` returns a generic message in production; details only go to server-side `console.error`. |
+| E6 | Credential-guessable endpoints (login, change-password) have brute-force/rate-limiting protection | **Fail, then Fixed 2026-09-16** | Flagged by independent architect review: no protection existed on `/api/auth/login` or `/api/auth/change-password`, despite the Super Admin default username/password being documented in the BRD. Added `express-rate-limit` (10 attempts / 15 min per IP) to both routes. **A second, real bug surfaced while verifying the fix**: Azure App Service's `X-Forwarded-For` includes the client's ephemeral source port (`ip:port`), which changes every request — the default IP-based key generator treated every request as a new client and never actually counted anything (`RateLimit-Remaining` stayed at 9 forever). Fixed with a custom `keyGenerator` (`ipOnly()` in `auth/routes.js`) that strips the port. Verified live: `RateLimit-Remaining` now correctly counts 9→0 across repeated requests, and the 11th request in a 15-minute window gets `429 Too Many Requests`. |
 
 ## F. Secrets management
 
@@ -74,5 +75,5 @@ Completed 2026-09-16. Environment: `app-sportspres-assetmgmt` (+ `dev` slot), `m
 
 | Role | Name | Date | Outcome |
 |---|---|---|---|
-| Independent Solution Architect review | | | Pending |
+| Independent Solution Architect review | (fresh subagent, no prior context) | 2026-09-16 | Rejected pending one fix (C1 httpsOnly), otherwise Approved with notes (E6 rate limiting, and the Section 3.1 outer/main contradiction flagged for user confirmation). Both C1 and E6 fixed and re-verified live same day. |
 | User (Vatsan) go-ahead | | | Pending |
