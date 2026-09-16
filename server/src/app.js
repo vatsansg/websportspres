@@ -10,7 +10,21 @@ import { errorHandler } from "./middleware/errorHandler.js";
 export function createApp() {
   const app = express();
 
-  app.use(helmet());
+  // helmet()'s default CSP restricts connect-src to 'self', which silently blocks the
+  // browser's fetch() call to Azure AD's token endpoint during Azure AD sign-in
+  // (MSAL's authorization-code-for-token exchange) - manifests as a generic
+  // "TypeError: Failed to fetch" with no explanation, easy to mistake for a network
+  // problem. Explicitly allow only what MSAL needs, nothing broader.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+          "connect-src": ["'self'", "https://login.microsoftonline.com"],
+        },
+      },
+    })
+  );
   // Security Checklist C4: no wildcard origin. In production, Angular is served from the
   // same App Service as this API, so same-origin requests need no CORS header at all -
   // this only matters for local development (Angular dev server on a different port).
