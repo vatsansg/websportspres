@@ -46,6 +46,9 @@ async function main() {
 
   const insertSql = `INSERT INTO event_tables (event_id, table_number, inner_led, outer_led, main_led) VALUES (?, ?, ?, ?, ?)`;
 
+  // Post-004: a single rule - Outer can never be selected without Inner. Main is
+  // independently free (resolves the BRD Section 3.1 rule 2 vs. rule 7 contradiction;
+  // see workflow.md and 004_fix_outer_led_constraint.sql for the full reasoning).
   let allPassed = true;
   allPassed &= await expectReject(
     conn,
@@ -55,7 +58,7 @@ async function main() {
   );
   allPassed &= await expectReject(
     conn,
-    "outer + main together",
+    "outer + main, no inner",
     insertSql,
     ["TST1", 1, 0, 1, 1]
   );
@@ -66,13 +69,21 @@ async function main() {
     ["TST1", 1, 0, 0, 0]
   );
 
-  // Sanity check: a valid combination must still succeed (inner + outer).
-  try {
-    await conn.query(insertSql, ["TST1", 1, 1, 1, 0]);
-    console.log("PASS  valid combination (inner+outer) was accepted, as expected");
-  } catch (err) {
-    console.log(`FAIL  valid combination (inner+outer) was rejected unexpectedly: ${err.message}`);
-    allPassed = false;
+  // Sanity checks: valid combinations must still succeed.
+  for (const [label, inner, outer, main] of [
+    ["inner alone", 1, 0, 0],
+    ["inner+outer", 1, 1, 0],
+    ["inner+main", 1, 0, 1],
+    ["inner+outer+main (rule 7 - this is the one 003 used to wrongly reject)", 1, 1, 1],
+    ["main alone", 0, 0, 1],
+  ]) {
+    try {
+      await conn.query(insertSql, ["TST1", Math.floor(Math.random() * 1000) + 2, inner, outer, main]);
+      console.log(`PASS  valid combination (${label}) was accepted, as expected`);
+    } catch (err) {
+      console.log(`FAIL  valid combination (${label}) was rejected unexpectedly: ${err.message}`);
+      allPassed = false;
+    }
   }
 
   await conn.query(`DELETE FROM events WHERE event_id = 'TST1'`); // cascades to event_tables
