@@ -1,10 +1,24 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import { query, withTransaction } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
 import { createEventStorageStructure, deleteEventStorageStructure } from "../storage/eventFolders.js";
 
 export const eventsRouter = Router();
+
+// Prevents an authenticated user (any role) from looping event creation to exhaust the
+// Event ID namespace or spam storage/DB - same treatment Step 1 gave the auth routes, but
+// keyed by session username (set by requireSession, which runs first) rather than IP,
+// since abuse here is about how many events one account creates, not one network address.
+const eventCreationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many events created recently. Please try again later." },
+});
 
 // Blob paths are built directly from event_id/event_name (see storage/eventFolders.js's
 // buildEventFolderName), so a "/" here would silently create nested "folders" instead of
@@ -60,6 +74,7 @@ function resolutionFields(table) {
 eventsRouter.post(
   "/",
   requireSession,
+  eventCreationLimiter,
   body("eventId").isString().trim().isLength({ min: 1, max: 20 }).matches(BLOB_SAFE_PATTERN),
   body("eventName")
     .isString()
@@ -91,38 +106,48 @@ eventsRouter.post(
       return res.status(409).json({ error: `Event ID "${eventId}" already exists` });
     }
 
-    await withTransaction(async ({ query: txQuery }) => {
-      await txQuery(
-        `INSERT INTO events (event_id, event_name, year, status, created_by, updated_by)
-         VALUES (?, ?, ?, 'Active', ?, ?)`,
-        [eventId, eventName, year, req.user.username, req.user.username]
-      );
-
-      for (const table of tables) {
-        const r = resolutionFields(table);
+    try {
+      await withTransaction(async ({ query: txQuery }) => {
         await txQuery(
-          `INSERT INTO event_tables
-             (event_id, table_number, inner_led, outer_led, main_led,
-              inner_resolution_width, inner_resolution_height,
-              outer_resolution_width, outer_resolution_height,
-              main_resolution_width, main_resolution_height)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            eventId,
-            table.tableNumber,
-            table.innerLed ? 1 : 0,
-            table.outerLed ? 1 : 0,
-            table.mainLed ? 1 : 0,
-            r.innerWidth,
-            r.innerHeight,
-            r.outerWidth,
-            r.outerHeight,
-            r.mainWidth,
-            r.mainHeight,
-          ]
+          `INSERT INTO events (event_id, event_name, year, status, created_by, updated_by)
+           VALUES (?, ?, ?, 'Active', ?, ?)`,
+          [eventId, eventName, year, req.user.username, req.user.username]
         );
+
+        for (const table of tables) {
+          const r = resolutionFields(table);
+          await txQuery(
+            `INSERT INTO event_tables
+               (event_id, table_number, inner_led, outer_led, main_led,
+                inner_resolution_width, inner_resolution_height,
+                outer_resolution_width, outer_resolution_height,
+                main_resolution_width, main_resolution_height)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              eventId,
+              table.tableNumber,
+              table.innerLed ? 1 : 0,
+              table.outerLed ? 1 : 0,
+              table.mainLed ? 1 : 0,
+              r.innerWidth,
+              r.innerHeight,
+              r.outerWidth,
+              r.outerHeight,
+              r.mainWidth,
+              r.mainHeight,
+            ]
+          );
+        }
+      });
+    } catch (err) {
+      // The SELECT-then-INSERT above has a TOCTOU gap: two concurrent requests for the same
+      // new eventId can both pass the pre-check and race on the INSERT. Catch the PK
+      // violation here so the loser still gets a clean 409, not a generic 500.
+      if (err.code === "ER_DUP_ENTRY") {
+        return res.status(409).json({ error: `Event ID "${eventId}" already exists` });
       }
-    });
+      throw err;
+    }
 
     try {
       const { eventStorageUrl } = await createEventStorageStructure({
@@ -134,9 +159,21 @@ eventsRouter.post(
       res.status(201).json({ eventId, eventName, year, eventStorageUrl });
     } catch (err) {
       // Storage failed after the DB commit succeeded - roll both back rather than leave a
-      // DB-only "ghost" event with no folder structure behind it.
-      await query("DELETE FROM events WHERE event_id = ?", [eventId]); // cascades to event_tables
-      await deleteEventStorageStructure({ year, eventId, eventName }).catch(() => {});
+      // DB-only "ghost" event with no folder structure behind it. Both rollback steps are
+      // logged (not silently swallowed) so a double-failure here - the rarer case where the
+      // rollback itself also fails - leaves a trace instead of vanishing without a record.
+      console.error(`Storage creation failed for event "${eventId}" after DB commit:`, err);
+      try {
+        await query("DELETE FROM events WHERE event_id = ?", [eventId]); // cascades to event_tables
+      } catch (dbRollbackErr) {
+        console.error(
+          `Failed to roll back DB row for event "${eventId}" after storage failure - manual cleanup needed:`,
+          dbRollbackErr
+        );
+      }
+      await deleteEventStorageStructure({ year, eventId, eventName }).catch((storageCleanupErr) => {
+        console.error(`Failed to clean up partial storage for event "${eventId}":`, storageCleanupErr);
+      });
       err.status = 500;
       err.message = "Event storage creation failed; event was not created";
       throw err;
