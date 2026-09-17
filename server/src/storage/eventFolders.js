@@ -27,6 +27,21 @@ async function uploadBuffer(containerClient, path, buffer, contentType) {
   });
 }
 
+const EMPTY_BUFFER = Buffer.alloc(0);
+
+// Step 4 (Web BRD Section 18.1's Winning Moment fallback): per the user's explicit
+// decision, default.png/default.mp4 are real per-table/per-destination assets an admin
+// uploads later (via the Default Assets feature, since a single global template can't
+// suit every event/venue's differing resolutions) - not a static file copied from the
+// templates container. Created empty here, same pattern as keepalive.txt, purely so the
+// slot visibly exists from table creation onward; ovrTriggers routes treat a 0-byte
+// default as "not actually set" so an empty placeholder can never be used as a real
+// fallback source.
+async function createDefaultAssetPlaceholders(containerClient, folderPath) {
+  await uploadBuffer(containerClient, `${folderPath}/default.png`, EMPTY_BUFFER, "image/png");
+  await uploadBuffer(containerClient, `${folderPath}/default.mp4`, EMPTY_BUFFER, "video/mp4");
+}
+
 export function buildEventFolderName(eventId, eventName) {
   return `${eventId} - ${eventName}`;
 }
@@ -80,6 +95,7 @@ export async function createEventStorageStructure({ year, eventId, eventName, ta
         sponsorSeqBuf,
         "text/csv"
       );
+      await createDefaultAssetPlaceholders(containerClient, innerFolder);
     }
     if (table.outerLed) {
       const outerFolder = `${tableFolder}/${LED_FOLDER_NAMES.outer}`;
@@ -90,11 +106,13 @@ export async function createEventStorageStructure({ year, eventId, eventName, ta
         sponsorSeqBuf,
         "text/csv"
       );
+      await createDefaultAssetPlaceholders(containerClient, outerFolder);
     }
     if (table.mainLed) {
       const mainFolder = `${tableFolder}/${LED_FOLDER_NAMES.main}`;
       // No sponsorsequence.csv for MainLED (Section 7.1 - Sponsor Ads never apply to Main LED).
       await uploadBuffer(containerClient, `${mainFolder}/keepalive.txt`, keepaliveBuf, "text/plain");
+      await createDefaultAssetPlaceholders(containerClient, mainFolder);
     }
   }
 

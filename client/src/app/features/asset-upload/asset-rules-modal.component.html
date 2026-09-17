@@ -1,0 +1,105 @@
+<div class="wtt-modal-backdrop" (click)="close()">
+  <div class="wtt-modal" role="dialog" aria-modal="true" aria-label="Asset Management Settings" (click)="$event.stopPropagation()">
+    <div class="wtt-modal__header">
+      <h2>Asset Management Settings</h2>
+      <button class="wtt-modal__close" type="button" aria-label="Close" (click)="close()">&times;</button>
+    </div>
+    <p class="wtt-field-hint">
+      View-only reference for every asset naming and validation rule the app enforces. Editing will be added in a
+      later step for Admin/Super Admin.
+    </p>
+
+    @if (loading()) {
+      <p class="wtt-field-hint">Loading...</p>
+    } @else if (error()) {
+      <p class="wtt-error" role="alert">{{ error() }}</p>
+    } @else if (rules()) {
+      <div class="wtt-modal__body">
+        <section class="wtt-rules-section">
+          <h3>Sponsor Ads</h3>
+          <ul class="wtt-rules-list">
+            <li>Destinations: {{ rules()!.sponsorAds.destinations.join(", ") }}</li>
+            <li>Allowed formats: {{ rules()!.sponsorAds.allowedFormats.join(", ") }}</li>
+            <li>Filename must not contain: {{ rules()!.sponsorAds.filenameMustNotContain.join(", ") }}</li>
+            <li>
+              Image: {{ rules()!.sponsorAds.image.bitDepth }}-bit, max {{ rules()!.sponsorAds.image.maxSizeMB }}MB
+            </li>
+            <li>Video: max {{ rules()!.sponsorAds.video.maxSizeMB }}MB</li>
+            <li>
+              Resolution — Inner/Outer default {{ rules()!.sponsorAds.resolution.innerOuterDefault.width }}x{{
+                rules()!.sponsorAds.resolution.innerOuterDefault.height
+              }}, Main LED default {{ rules()!.sponsorAds.resolution.mainLedDefault.width }}x{{
+                rules()!.sponsorAds.resolution.mainLedDefault.height
+              }} ({{ rules()!.sponsorAds.resolution.note }})
+            </li>
+          </ul>
+        </section>
+
+        <section class="wtt-rules-section">
+          <h3>OVR Match Triggers</h3>
+          <table class="wtt-rules-table">
+            <thead>
+              <tr>
+                <th>Trigger</th>
+                <th>Destinations</th>
+                <th>File</th>
+                <th>Filename rule</th>
+                <th>Saved as</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (trigger of rules()!.ovrTriggers; track trigger.id) {
+                @for (file of trigger.files; track file.kind) {
+                  <tr>
+                    <td>{{ trigger.label }} @if (trigger.optional) { <span class="wtt-tag">Optional</span> }</td>
+                    <td>{{ trigger.destinations.join(", ") }}</td>
+                    <td>{{ file.kind === "image" ? "PNG" : "MP4" }}</td>
+                    <td>{{ filenameRuleText(file) }}</td>
+                    <td>{{ file.storageFilename }}</td>
+                    <td>
+                      @if (file.additionalCopy) {
+                        Also copied as {{ file.additionalCopy }}
+                      }
+                      @if (file.fallbackFrom) {
+                        Falls back to a copy of {{ file.fallbackFrom }} if missing
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </section>
+
+        <section class="wtt-rules-section">
+          <h3>All Sponsor Logo</h3>
+          <ul class="wtt-rules-list">
+            <li>Destinations: {{ rules()!.allSponsorLogo.destinations.join(", ") }} (never Main LED)</li>
+            <li>Required filename: {{ rules()!.allSponsorLogo.requiredFilename }}</li>
+            <li>Saved as: {{ rules()!.allSponsorLogo.storageFilename }} in both Inner and Outer</li>
+          </ul>
+        </section>
+
+        <section class="wtt-rules-section">
+          <h3>RPI Home Look</h3>
+          <ul class="wtt-rules-list">
+            <li>Event-level — applies to the whole event, not a specific table</li>
+            <li>Filename must contain: {{ rules()!.rpi.requiredFilename }}</li>
+            <li>Saved as: {{ rules()!.rpi.storageFilename }}</li>
+            <li>Resolution: {{ rules()!.rpi.resolution.width }}x{{ rules()!.rpi.resolution.height }}</li>
+          </ul>
+        </section>
+
+        <section class="wtt-rules-section">
+          <h3>{{ rules()!.defaultAssets.label }}</h3>
+          <p>{{ rules()!.defaultAssets.description }}</p>
+          <ul class="wtt-rules-list">
+            <li>Image saved as: {{ rules()!.defaultAssets.storageFilenames.image }}</li>
+            <li>Video saved as: {{ rules()!.defaultAssets.storageFilenames.video }}</li>
+          </ul>
+        </section>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="wtt-destination-section">
+  <div class="wtt-destination-section__header">
+    <h3>{{ label }}</h3>
+  </div>
+
+  @if (loadError()) {
+    <p class="wtt-error" role="alert">{{ loadError() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading OVR Match Triggers...</p>
+  } @else {
+    @for (slot of slots(); track slot.assetKey) {
+      <app-ovr-slot-row
+        [label]="slot.label"
+        [kind]="slot.kind"
+        [optional]="slot.optional"
+        [exists]="slot.exists"
+        [usingFallback]="slot.usingFallback"
+        [previewUrl]="previewUrlFor(slot.assetKey)"
+        [uploadFn]="uploadFnFor(slot.assetKey)"
+        [deleteFn]="deleteFnFor(slot.assetKey)"
+        (changed)="reload()"
+      />
+    }
+  }
+</div>

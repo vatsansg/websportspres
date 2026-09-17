@@ -4,7 +4,7 @@ import { config } from "../config/env.js";
 
 // Web BRD Section 12: uploaded filenames must not contain either term, checked
 // case-insensitively (consistent with the Event Name "WTT" check from Step 2).
-const FORBIDDEN_FILENAME_TERMS = ["led", "ovr"];
+export const FORBIDDEN_FILENAME_TERMS = ["led", "ovr"];
 
 // Filenames are used directly as blob names within a server-computed folder prefix
 // (storage/sponsorAds.js). Azure Blob Storage's flat namespace means a "/" can't actually
@@ -19,7 +19,10 @@ const BLOB_SAFE_PATTERN = /^[^/\\\x00-\x1f]+$/;
 // app-wide value. The doc's own "80 Mbps" video field is ambiguous (mixes a bitrate unit
 // into a field labeled max file size) - per an earlier explicit decision, ignored in favor
 // of relying solely on the BRD's own unambiguous 100MB application-wide cap (Section 27.1).
-const IMAGE_SPEC = { bitsPerPixel: 32, maxBytes: 4 * 1024 * 1024 };
+// Exported for reuse by ovrTriggerValidation.js - the same format/bit-depth/size rules
+// apply to OVR Trigger images (Web BRD Section 17 validates against the same "Sports
+// Press" spec doc), only the expected resolution differs by asset type/destination.
+export const IMAGE_SPEC = { bitsPerPixel: 32, maxBytes: 4 * 1024 * 1024 };
 
 export function isVideoFilename(filename) {
   return filename.toLowerCase().endsWith(".mp4");

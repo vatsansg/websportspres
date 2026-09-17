@@ -5,13 +5,25 @@ import { Router } from '@angular/router';
 import { EventDetail, EventSummary, EventsService } from '../../core/events.service';
 import { SponsorAdDestination, SponsorAdsService } from '../../core/sponsor-ads.service';
 import { SponsorDestinationSectionComponent } from './sponsor-destination-section.component';
+import { OvrTriggerSectionComponent } from './ovr-trigger-section.component';
+import { DefaultAssetsSectionComponent } from './default-assets-section.component';
+import { RpiSectionComponent } from './rpi-section.component';
+import { AssetRulesModalComponent } from './asset-rules-modal.component';
 
 // Web BRD Section 10: the Asset Upload page has two tabs, Sponsor Ads and OVR Match
-// Triggers. Only Sponsor Ads is built as of Step 3 - OVR Match Triggers is Step 4's scope.
+// Triggers.
 @Component({
   selector: 'app-asset-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule, SponsorDestinationSectionComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    SponsorDestinationSectionComponent,
+    OvrTriggerSectionComponent,
+    DefaultAssetsSectionComponent,
+    RpiSectionComponent,
+    AssetRulesModalComponent,
+  ],
   templateUrl: './asset-upload.component.html',
   styleUrl: './asset-upload.component.scss',
 })
@@ -23,6 +35,8 @@ export class AssetUploadComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly loadingEvents = signal(true);
   readonly loadingEventDetail = signal(false);
+  readonly activeTab = signal<'sponsor' | 'ovr'>('sponsor');
+  readonly rulesModalOpen = signal(false);
 
   // Web BRD Section 14: destination selection happens once per upload batch - the same
   // files get copied into every checked destination, each of which then manages its own
@@ -65,6 +79,17 @@ export class AssetUploadComponent implements OnInit {
     if (this.hasUnsavedChanges()) {
       event.preventDefault();
     }
+  }
+
+  setTab(tab: 'sponsor' | 'ovr') {
+    if (tab === this.activeTab()) return;
+    // Switching away from Sponsor Ads unmounts its sections (they're behind an @if per
+    // tab), which would silently discard any unsaved reordering/duration edits there.
+    if (this.activeTab() === 'sponsor' && this.hasUnsavedChanges()) {
+      const leave = window.confirm('You have unsaved changes on the Sponsor Ads tab. Switch tabs without saving?');
+      if (!leave) return;
+    }
+    this.activeTab.set(tab);
   }
 
   goToDashboard() {

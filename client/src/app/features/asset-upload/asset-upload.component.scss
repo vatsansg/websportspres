@@ -9,7 +9,12 @@
 
 .wtt-upload-card {
   width: 100%;
-  max-width: 1080px;
+  // Independent UI/UX review: 1080px wasted ~40% of a 1920px window as dead gutter.
+  // min(94vw, 1600px) uses nearly the full viewport while capping line lengths on
+  // ultra-wide monitors; everything downstream (destination columns, tables, slot
+  // grids) gets proportionally more room automatically.
+  max-width: min(94vw, 1600px);
+  padding-inline: clamp(1.25rem, 2.5vw, var(--wtt-space-8));
 }
 
 .wtt-upload-header {
@@ -17,6 +22,12 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--wtt-space-4);
+}
+
+.wtt-upload-header__actions {
+  display: flex;
+  gap: var(--wtt-space-2);
+  flex-shrink: 0;
 }
 
 .wtt-cta--small {
@@ -96,21 +107,16 @@
   border-color: var(--wtt-teal);
 }
 
+// Independent UI/UX review: the old flex:1-with-no-minimum layout always split evenly
+// into exactly as many columns as there were children, squeezing arbitrarily thin on a
+// narrower window. A responsive grid gives each column a sane minimum and gracefully
+// drops from 3-up to 2-up to 1-up instead - and, combined with the wider page container
+// above, comfortably fits 3 columns of OVR Trigger slot cards side by side.
 .wtt-destination-columns {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--wtt-space-4);
-  align-items: flex-start;
-}
-
-.wtt-destination-columns > * {
-  flex: 1;
-  min-width: 0;
-}
-
-@media (max-width: 720px) {
-  .wtt-destination-columns {
-    flex-direction: column;
-  }
+  align-items: start;
 }
 
 .wtt-upload-progress {

@@ -1,0 +1,26 @@
+<div class="wtt-destination-section">
+  <div class="wtt-destination-section__header">
+    <h3>RPI Home Look</h3>
+  </div>
+  <p class="wtt-field-hint">Event-level asset — applies to the whole event, not a specific table.</p>
+
+  @if (loadError()) {
+    <p class="wtt-error" role="alert">{{ loadError() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading...</p>
+  } @else {
+    <app-ovr-slot-row
+      label="RPI Home Look"
+      kind="image"
+      [optional]="false"
+      [exists]="slotExists()"
+      [usingFallback]="false"
+      [previewUrl]="previewUrl"
+      [uploadFn]="uploadFn"
+      [deleteFn]="deleteFn"
+      (changed)="reload()"
+    />
+  }
+</div>

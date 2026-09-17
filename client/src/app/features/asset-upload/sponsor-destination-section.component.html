@@ -46,7 +46,7 @@
                 &darr;
               </button>
             </td>
-            <td>{{ file.filename }}</td>
+            <td [title]="file.filename">{{ file.filename }}</td>
             <td class="wtt-duration-cell">
               <input
                 type="number"
@@ -57,15 +57,21 @@
               />
               @if (file.isVideo) {
                 <button
-                  class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                  class="wtt-cta wtt-cta--secondary wtt-cta--small wtt-cta--icon"
                   type="button"
                   [disabled]="file.retrievingDuration"
                   (click)="retrieveDuration(file)"
+                  title="Retrieve video duration"
+                  aria-label="Retrieve video duration"
                 >
                   @if (file.retrievingDuration) {
                     <span class="wtt-spinner" aria-hidden="true"></span>
+                  } @else {
+                    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
+                      <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
                   }
-                  Retrieve Video Duration
                 </button>
               }
             </td>

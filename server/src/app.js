@@ -7,6 +7,9 @@ import { healthRouter } from "./routes/health.js";
 import { configRouter } from "./routes/config.js";
 import { eventsRouter } from "./events/routes.js";
 import { sponsorAdsRouter } from "./sponsorAds/routes.js";
+import { ovrTriggersRouter } from "./ovrTriggers/routes.js";
+import { rpiRouter } from "./ovrTriggers/rpiRoutes.js";
+import { assetRulesRouter } from "./assetRules/routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -53,6 +56,9 @@ export function createApp() {
   app.use("/api/config", configRouter);
   app.use("/api/events", eventsRouter);
   app.use("/api/events/:eventId/tables/:tableNumber/sponsor-ads", sponsorAdsRouter);
+  app.use("/api/events/:eventId/tables/:tableNumber/ovr-triggers", ovrTriggersRouter);
+  app.use("/api/events/:eventId/ovr-triggers/rpi", rpiRouter);
+  app.use("/api/asset-rules", assetRulesRouter);
 
   app.use(errorHandler);
   return app;

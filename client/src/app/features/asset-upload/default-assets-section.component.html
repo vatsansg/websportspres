@@ -1,0 +1,31 @@
+<div class="wtt-destination-section">
+  <div class="wtt-destination-section__header">
+    <h3>Default Assets — {{ label }}</h3>
+  </div>
+  <p class="wtt-field-hint">
+    Used as the Winning Moment fallback when no winner video has been uploaded, and copied automatically into
+    Home Look's default image.
+  </p>
+
+  @if (loadError()) {
+    <p class="wtt-error" role="alert">{{ loadError() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading...</p>
+  } @else {
+    @for (slot of slots(); track slot.assetKey) {
+      <app-ovr-slot-row
+        [label]="slot.label"
+        [kind]="slot.kind"
+        [optional]="slot.optional"
+        [exists]="slot.exists"
+        [usingFallback]="slot.usingFallback"
+        [previewUrl]="previewUrlFor(slot.assetKey)"
+        [uploadFn]="uploadFnFor(slot.assetKey)"
+        [deleteFn]="deleteFnFor(slot.assetKey)"
+        (changed)="reload()"
+      />
+    }
+  }
+</div>
