@@ -1,0 +1,129 @@
+.wtt-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: radial-gradient(circle at 50% 0%, #141414 0%, #000 65%);
+}
+
+.wtt-create-card {
+  width: 100%;
+  max-width: 560px;
+}
+
+.wtt-subtitle {
+  opacity: 0.6;
+  font-size: 0.85rem;
+  margin: 0 0 1.75rem;
+}
+
+.wtt-storage-url {
+  background: #111;
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  color: var(--wtt-teal);
+  font-family: monospace;
+  font-size: 0.8rem;
+  padding: 0.7rem 0.85rem;
+  word-break: break-all;
+}
+
+.wtt-tables {
+  margin: var(--wtt-space-6) 0;
+}
+
+.wtt-tables-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-tables-header h2 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.wtt-cta--small {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  width: auto;
+}
+
+.wtt-table-row {
+  background: var(--wtt-surface-raised);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  padding: var(--wtt-space-4);
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-table-row__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  font-family: var(--wtt-font-display);
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-remove-table {
+  background: transparent;
+  border: none;
+  color: var(--wtt-error);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.wtt-led-checks {
+  display: flex;
+  gap: var(--wtt-space-4);
+  flex-wrap: wrap;
+}
+
+.wtt-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.wtt-checkbox--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wtt-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--wtt-orange);
+  cursor: pointer;
+}
+
+.wtt-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: var(--wtt-space-2);
+}
+
+.wtt-actions .wtt-cta {
+  flex: 1;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  border: 1px solid var(--wtt-border);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}

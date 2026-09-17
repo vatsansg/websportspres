@@ -1,0 +1,136 @@
+<div class="wtt-page">
+  <div class="wtt-card wtt-create-card">
+    @if (createdEvent()) {
+      <h1>Event Created</h1>
+      <p class="wtt-subtitle">Your event and its storage folder structure are ready.</p>
+
+      <p class="wtt-success" role="status">
+        Event <strong>{{ createdEvent()!.eventId }}</strong> — {{ createdEvent()!.eventName }}
+        ({{ createdEvent()!.year }}) has been saved, and its Azure Storage folder structure
+        (tables, LED destination folders, and template files) has been created.
+      </p>
+
+      <div class="wtt-field">
+        <label>Storage Location</label>
+        <div class="wtt-storage-url">{{ createdEvent()!.eventStorageUrl }}</div>
+      </div>
+
+      <div class="wtt-actions">
+        <button class="wtt-cta" type="button" (click)="goToDashboard()">Go to Dashboard</button>
+        <button class="wtt-cta wtt-cta--secondary" type="button" (click)="createAnother()">
+          Create Another Event
+        </button>
+      </div>
+    } @else {
+    <h1>Create Event</h1>
+    <p class="wtt-subtitle">Set up a new event and its storage folder structure.</p>
+
+    <form (ngSubmit)="submit()" #f="ngForm" novalidate>
+      <div class="wtt-field">
+        <label for="eventId">Event ID</label>
+        <input
+          id="eventId"
+          name="eventId"
+          [(ngModel)]="eventId"
+          required
+          maxlength="20"
+          inputmode="numeric"
+          pattern="[0-9]+"
+          placeholder="e.g. 2201"
+        />
+        <span class="wtt-field-hint">Numeric only. Must be unique across all events, all years.</span>
+      </div>
+
+      <div class="wtt-field">
+        <label for="eventName">Event Name</label>
+        <input
+          id="eventName"
+          name="eventName"
+          [(ngModel)]="eventName"
+          required
+          maxlength="255"
+          placeholder="e.g. Champions Montpellier"
+        />
+        <span class="wtt-field-hint">Must not contain "WTT".</span>
+      </div>
+
+      <div class="wtt-field">
+        <label for="year">Year</label>
+        <input id="year" name="year" type="number" [(ngModel)]="year" required min="2000" max="2100" />
+      </div>
+
+      <div class="wtt-tables">
+        <div class="wtt-tables-header">
+          <h2>Tables</h2>
+          <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="addTable()">
+            + Add Table
+          </button>
+        </div>
+
+        @for (table of tables; track table.tableNumber) {
+          <div class="wtt-table-row">
+            <div class="wtt-table-row__title">
+              Table {{ table.tableNumber }}
+              @if (table.tableNumber !== 1) {
+                <button
+                  class="wtt-remove-table"
+                  type="button"
+                  aria-label="Remove table"
+                  (click)="removeTable(table.tableNumber)"
+                >
+                  &times;
+                </button>
+              }
+            </div>
+            <div class="wtt-led-checks">
+              <label class="wtt-checkbox">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="table.innerLed"
+                  [name]="'inner-' + table.tableNumber"
+                  (change)="onInnerToggle(table)"
+                />
+                Inner LED
+              </label>
+              <label class="wtt-checkbox" [class.wtt-checkbox--disabled]="!table.innerLed">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="table.outerLed"
+                  [name]="'outer-' + table.tableNumber"
+                  [disabled]="!table.innerLed"
+                />
+                Outer LED
+              </label>
+              <label class="wtt-checkbox">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="table.mainLed"
+                  [name]="'main-' + table.tableNumber"
+                />
+                Main LED
+              </label>
+            </div>
+            @if (table.innerLed && !table.outerLed) {
+              <span class="wtt-field-hint">Outer LED requires Inner LED to also be selected.</span>
+            }
+          </div>
+        }
+      </div>
+
+      @if (error()) {
+        <p class="wtt-error" role="alert">{{ error() }}</p>
+      }
+
+      <div class="wtt-actions">
+        <button class="wtt-cta" type="submit" [disabled]="loading() || f.invalid">
+          @if (loading()) {
+            <span class="wtt-spinner" aria-hidden="true"></span>
+          }
+          Create Event
+        </button>
+        <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancel()">Cancel</button>
+      </div>
+    </form>
+    }
+  </div>
+</div>

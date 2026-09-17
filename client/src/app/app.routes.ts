@@ -20,6 +20,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'create-event',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/create-event/create-event.component').then(
+        (m) => m.CreateEventComponent
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

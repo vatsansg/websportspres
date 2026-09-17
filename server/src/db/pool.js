@@ -61,3 +61,27 @@ export async function query(sql, params) {
   const [rows] = await p.query(sql, params);
   return rows;
 }
+
+// For multi-statement writes that must all succeed or all fail together (e.g. creating
+// an event's row plus its per-table rows in Step 2). `work` receives a connection with
+// query(sql, params) already bound to it, transaction already begun.
+export async function withTransaction(work) {
+  const p = await getPool();
+  const conn = await p.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await work({
+      query: async (sql, params) => {
+        const [rows] = await conn.query(sql, params);
+        return rows;
+      },
+    });
+    await conn.commit();
+    return result;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}

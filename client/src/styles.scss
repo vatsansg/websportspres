@@ -60,7 +60,8 @@ p {
 
 /* ---------- Buttons ---------- */
 
-button.wtt-cta {
+button.wtt-cta,
+a.wtt-cta {
   background: var(--wtt-orange);
   color: var(--wtt-black);
   border: none;
@@ -78,11 +79,14 @@ button.wtt-cta {
   align-items: center;
   justify-content: center;
   gap: var(--wtt-space-2);
+  text-decoration: none;
 }
 
-button.wtt-cta:hover:not(:disabled) {
+button.wtt-cta:hover:not(:disabled),
+a.wtt-cta:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35);
+  text-decoration: none;
 }
 
 button.wtt-cta:active:not(:disabled) {
