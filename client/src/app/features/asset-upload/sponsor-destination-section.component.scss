@@ -29,11 +29,31 @@
   white-space: nowrap;
 }
 
+// Side-by-side Inner/Outer columns give this table roughly half the width it had when
+// stacked - without table-layout: fixed, a row with a video's "Retrieve Video Duration"
+// button could force the Duration column wide enough to push the Delete column outside
+// the visible area entirely (looked like the delete button had vanished).
 .wtt-file-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.85rem;
   margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-file-table th:nth-child(1),
+.wtt-file-table td:nth-child(1) {
+  width: 54px;
+}
+
+.wtt-file-table th:nth-child(3),
+.wtt-file-table td:nth-child(3) {
+  width: 140px;
+}
+
+.wtt-file-table th:nth-child(4),
+.wtt-file-table td:nth-child(4) {
+  width: 32px;
 }
 
 .wtt-file-table th {
@@ -50,6 +70,8 @@
   padding: 0.5rem;
   border-bottom: 1px solid var(--wtt-border);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wtt-file-order {
@@ -74,17 +96,25 @@
 
 .wtt-duration-cell {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--wtt-space-2);
 }
 
 .wtt-duration-cell input {
-  width: 70px;
+  width: 100%;
+  max-width: 80px;
   background: #111;
   border: 1px solid var(--wtt-border);
   border-radius: var(--wtt-radius-sm);
   color: var(--wtt-white);
   padding: 0.35rem 0.5rem;
+}
+
+.wtt-duration-cell .wtt-cta--small {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .wtt-cta--secondary {
