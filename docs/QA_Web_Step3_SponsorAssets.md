@@ -70,4 +70,4 @@
 | Role | Name | Date | Outcome |
 |---|---|---|---|
 | Independent Solution Architect review | (fresh subagent, no prior context) | 2026-09-17 | Approved with notes — one item (D-05, the Section 14 distribution model) flagged as blocking pending user confirmation; user chose to build it rather than document it as a simplification. All 4 findings (D-05 through D-08) fixed and re-verified live same day. |
-| User (Vatsan) go-ahead | | | Pending |
+| User (Vatsan) go-ahead | | 2026-09-17 | Approved, after two rounds of live testing and fixes (TC-26 through TC-29 and the button-width/row-height/contrast follow-ups). |
