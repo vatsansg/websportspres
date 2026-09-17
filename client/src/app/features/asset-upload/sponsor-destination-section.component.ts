@@ -21,8 +21,8 @@ function isVideoFilename(filename: string): boolean {
 // this component manages exactly one (table, destination) pair's file list, ordering, and
 // Save Sequence action. Uploading is the parent's job (AssetUploadComponent), since Section
 // 14 treats "which destination(s) to copy into" as one decision made once per upload
-// batch, not a property of a permanently-fixed per-destination zone - reload() is public
-// so the parent can refresh this section after a shared upload completes.
+// batch, not a property of a permanently-fixed per-destination zone - addUploadedFiles()
+// and reload() are public so the parent can update this section after a shared upload.
 @Component({
   selector: 'app-sponsor-destination-section',
   standalone: true,
@@ -41,6 +41,10 @@ export class SponsorDestinationSectionComponent implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly saved = signal(false);
+  // True whenever the user has made a local change (reorder, duration edit, an
+  // add/delete that happened here) not yet persisted via Save Sequence - the parent reads
+  // this to decide whether to warn before navigating away.
+  readonly dirty = signal(false);
 
   constructor(private sponsorAds: SponsorAdsService) {}
 
@@ -55,11 +59,37 @@ export class SponsorDestinationSectionComponent implements OnInit {
       this.files.set(
         files.map((f) => ({ ...f, isVideo: isVideoFilename(f.filename), retrievingDuration: false }))
       );
+      this.dirty.set(false);
     } catch {
       this.error.set('Could not load files for this destination.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /**
+   * Appends newly-uploaded filenames to the existing local list without touching any
+   * other row - preserves whatever unsaved reordering/duration edits the user already
+   * made to files already present (a full reload() here would silently discard them).
+   */
+  addUploadedFiles(filenames: string[]) {
+    const existing = new Set(this.files().map((f) => f.filename));
+    const newRows: FileRow[] = filenames
+      .filter((filename) => !existing.has(filename))
+      .map((filename) => ({
+        filename,
+        duration: isVideoFilename(filename) ? null : 1,
+        seqno: null,
+        isVideo: isVideoFilename(filename),
+        retrievingDuration: false,
+      }));
+    if (newRows.length === 0) return;
+    this.files.set([...this.files(), ...newRows]);
+    this.dirty.set(true);
+  }
+
+  markDirty() {
+    this.dirty.set(true);
   }
 
   async retrieveDuration(file: FileRow) {
@@ -73,6 +103,7 @@ export class SponsorDestinationSectionComponent implements OnInit {
         file.filename
       );
       file.duration = duration;
+      this.dirty.set(true);
     } catch {
       this.error.set(`Could not retrieve duration for "${file.filename}".`);
     } finally {
@@ -86,6 +117,7 @@ export class SponsorDestinationSectionComponent implements OnInit {
     const files = [...this.files()];
     [files[index - 1], files[index]] = [files[index], files[index - 1]];
     this.files.set(files);
+    this.dirty.set(true);
   }
 
   moveDown(index: number) {
@@ -94,13 +126,17 @@ export class SponsorDestinationSectionComponent implements OnInit {
     const updated = [...files];
     [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
     this.files.set(updated);
+    this.dirty.set(true);
   }
 
   async deleteFile(file: FileRow) {
     this.error.set(null);
     try {
       await this.sponsorAds.deleteFile(this.eventId, this.tableNumber, this.destination, file.filename);
-      await this.reload();
+      // Remove locally rather than reload() - preserves unsaved edits to the remaining
+      // files (same reasoning as addUploadedFiles).
+      this.files.set(this.files().filter((f) => f.filename !== file.filename));
+      this.dirty.set(true);
     } catch {
       this.error.set(`Could not delete "${file.filename}".`);
     }
@@ -118,6 +154,8 @@ export class SponsorDestinationSectionComponent implements OnInit {
         this.files().map((f) => ({ filename: f.filename, duration: f.duration }))
       );
       this.saved.set(true);
+      // Safe to reload here: everything currently in files() was just persisted, so
+      // there's no unsaved local state left to lose.
       await this.reload();
     } catch (err) {
       if (err instanceof HttpErrorResponse && err.status === 400) {

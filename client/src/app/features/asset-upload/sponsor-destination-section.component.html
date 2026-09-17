@@ -42,6 +42,7 @@
                 type="number"
                 min="0"
                 [(ngModel)]="file.duration"
+                (ngModelChange)="markDirty()"
                 [name]="'duration-' + file.filename"
               />
               @if (file.isVideo) {
@@ -72,7 +73,7 @@
       @if (saving()) {
         <span class="wtt-spinner" aria-hidden="true"></span>
       }
-      Save Sequence
+      Save Sequence for {{ label }}
     </button>
   }
 </div>

@@ -1,7 +1,14 @@
 <div class="wtt-page">
   <div class="wtt-card wtt-upload-card">
-    <h1>Asset Upload</h1>
-    <p class="wtt-subtitle">Upload and arrange Sponsor Ad assets for an event.</p>
+    <div class="wtt-upload-header">
+      <div>
+        <h1>Asset Upload</h1>
+        <p class="wtt-subtitle">Upload and arrange Sponsor Ad assets for an event.</p>
+      </div>
+      <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="goToDashboard()">
+        &larr; Back to Dashboard
+      </button>
+    </div>
 
     <div class="wtt-tabs">
       <button class="wtt-tab wtt-tab--active" type="button">Sponsor Ads</button>
@@ -51,10 +58,7 @@
 
     @if (selectedTable) {
       @if (!selectedTable.innerLed && !selectedTable.outerLed) {
-        <p class="wtt-field-hint">
-          This table has no Inner or Outer LED enabled - Sponsor Ads has no available
-          destination here (Main LED only applies to OVR Match Triggers).
-        </p>
+        <p class="wtt-field-hint">No Sponsor Surround LED Types have been selected for this table.</p>
       }
 
       @if (selectedTable.innerLed || selectedTable.outerLed) {
@@ -83,8 +87,12 @@
             (drop)="onDrop($event)"
           >
             @if (uploading()) {
-              <span class="wtt-spinner" aria-hidden="true"></span>
-              <span>Uploading...</span>
+              <div class="wtt-upload-progress">
+                <span>Uploading... {{ uploadProgress() }}%</span>
+                <div class="wtt-progress-track">
+                  <div class="wtt-progress-fill" [style.width.%]="uploadProgress()"></div>
+                </div>
+              </div>
             } @else {
               <span>Drag and drop PNG images or MP4 videos here, or</span>
               <label class="wtt-browse-link">
@@ -107,24 +115,26 @@
         </div>
       }
 
-      @if (selectedTable.innerLed) {
-        <app-sponsor-destination-section
-          #innerSectionRef
-          [eventId]="selectedEventId()!"
-          [tableNumber]="selectedTable.tableNumber"
-          destination="inner"
-          label="Inner Surround"
-        />
-      }
-      @if (selectedTable.outerLed) {
-        <app-sponsor-destination-section
-          #outerSectionRef
-          [eventId]="selectedEventId()!"
-          [tableNumber]="selectedTable.tableNumber"
-          destination="outer"
-          label="Outer Surround"
-        />
-      }
+      <div class="wtt-destination-columns">
+        @if (selectedTable.innerLed) {
+          <app-sponsor-destination-section
+            #innerSectionRef
+            [eventId]="selectedEventId()!"
+            [tableNumber]="selectedTable.tableNumber"
+            destination="inner"
+            label="Inner Surround"
+          />
+        }
+        @if (selectedTable.outerLed) {
+          <app-sponsor-destination-section
+            #outerSectionRef
+            [eventId]="selectedEventId()!"
+            [tableNumber]="selectedTable.tableNumber"
+            destination="outer"
+            label="Outer Surround"
+          />
+        }
+      </div>
     }
   </div>
 </div>

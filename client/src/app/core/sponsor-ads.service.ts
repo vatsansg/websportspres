@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -32,22 +32,35 @@ export class SponsorAdsService {
     return firstValueFrom(this.http.get<SponsorAdFile[]>(this.basePath(eventId, tableNumber, destination)));
   }
 
-  async uploadFiles(
+  uploadFiles(
     eventId: string,
     tableNumber: number,
     destination: SponsorAdDestination,
-    files: File[]
+    files: File[],
+    onProgress?: (percent: number) => void
   ): Promise<{ results: SponsorAdUploadResult[] }> {
     const formData = new FormData();
     for (const file of files) {
       formData.append('files', file, file.name);
     }
-    return firstValueFrom(
-      this.http.post<{ results: SponsorAdUploadResult[] }>(
-        `${this.basePath(eventId, tableNumber, destination)}/upload`,
-        formData
-      )
-    );
+    return new Promise((resolve, reject) => {
+      this.http
+        .post<{ results: SponsorAdUploadResult[] }>(
+          `${this.basePath(eventId, tableNumber, destination)}/upload`,
+          formData,
+          { reportProgress: true, observe: 'events' }
+        )
+        .subscribe({
+          next: (event) => {
+            if (event.type === HttpEventType.UploadProgress && event.total) {
+              onProgress?.(Math.round((event.loaded / event.total) * 100));
+            } else if (event.type === HttpEventType.Response) {
+              resolve(event.body as { results: SponsorAdUploadResult[] });
+            }
+          },
+          error: (err) => reject(err),
+        });
+    });
   }
 
   async saveSequence(

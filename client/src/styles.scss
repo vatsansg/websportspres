@@ -41,6 +41,10 @@ body {
   font-family: var(--wtt-font-body);
   height: 100%;
   -webkit-font-smoothing: antialiased;
+  // Tells the browser this page is dark, so native controls (select dropdowns, date
+  // pickers, scrollbars) render with dark-mode OS chrome instead of a light default that
+  // can look borderless/invisible against our black background.
+  color-scheme: dark;
 }
 
 h1,
