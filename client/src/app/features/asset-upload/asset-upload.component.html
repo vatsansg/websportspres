@@ -56,8 +56,60 @@
           destination here (Main LED only applies to OVR Match Triggers).
         </p>
       }
+
+      @if (selectedTable.innerLed || selectedTable.outerLed) {
+        <div class="wtt-upload-area">
+          <div class="wtt-upload-destinations">
+            <span class="wtt-upload-destinations__label">Upload to:</span>
+            @if (selectedTable.innerLed) {
+              <label class="wtt-checkbox">
+                <input type="checkbox" [(ngModel)]="uploadToInner" name="uploadToInner" />
+                Inner Surround
+              </label>
+            }
+            @if (selectedTable.outerLed) {
+              <label class="wtt-checkbox">
+                <input type="checkbox" [(ngModel)]="uploadToOuter" name="uploadToOuter" />
+                Outer Surround
+              </label>
+            }
+          </div>
+
+          <div
+            class="wtt-dropzone"
+            [class.wtt-dropzone--active]="dragOver()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave()"
+            (drop)="onDrop($event)"
+          >
+            @if (uploading()) {
+              <span class="wtt-spinner" aria-hidden="true"></span>
+              <span>Uploading...</span>
+            } @else {
+              <span>Drag and drop PNG images or MP4 videos here, or</span>
+              <label class="wtt-browse-link">
+                browse
+                <input type="file" multiple accept=".png,.mp4" (change)="onFileInputChange($event)" hidden />
+              </label>
+            }
+          </div>
+
+          @if (uploadErrors().length > 0) {
+            <div class="wtt-error" role="alert">
+              <p><strong>Some files were rejected:</strong></p>
+              <ul>
+                @for (msg of uploadErrors(); track msg) {
+                  <li>{{ msg }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+
       @if (selectedTable.innerLed) {
         <app-sponsor-destination-section
+          #innerSectionRef
           [eventId]="selectedEventId()!"
           [tableNumber]="selectedTable.tableNumber"
           destination="inner"
@@ -66,6 +118,7 @@
       }
       @if (selectedTable.outerLed) {
         <app-sponsor-destination-section
+          #outerSectionRef
           [eventId]="selectedEventId()!"
           [tableNumber]="selectedTable.tableNumber"
           destination="outer"

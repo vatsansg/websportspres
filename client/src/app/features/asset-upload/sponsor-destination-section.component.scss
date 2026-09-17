@@ -14,33 +14,6 @@
   margin-bottom: var(--wtt-space-3);
 }
 
-.wtt-dropzone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--wtt-space-2);
-  flex-wrap: wrap;
-  border: 2px dashed var(--wtt-border);
-  border-radius: var(--wtt-radius-sm);
-  padding: var(--wtt-space-6);
-  font-size: 0.85rem;
-  opacity: 0.8;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  margin-bottom: var(--wtt-space-3);
-}
-
-.wtt-dropzone--active {
-  border-color: var(--wtt-orange);
-  background: rgba(255, 107, 0, 0.06);
-  opacity: 1;
-}
-
-.wtt-browse-link {
-  color: var(--wtt-blue);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
 .wtt-file-table {
   width: 100%;
   border-collapse: collapse;

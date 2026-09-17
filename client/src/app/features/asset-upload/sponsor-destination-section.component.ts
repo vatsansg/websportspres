@@ -17,9 +17,12 @@ function isVideoFilename(filename: string): boolean {
   return filename.toLowerCase().endsWith('.mp4');
 }
 
-// Web BRD Sections 13/14: order/duration are managed independently per table/destination -
-// this component is a fully self-contained unit for exactly one (table, destination) pair,
-// with its own upload zone, file list, and Save Sequence action.
+// Web BRD Section 13: order/duration are managed independently per table/destination -
+// this component manages exactly one (table, destination) pair's file list, ordering, and
+// Save Sequence action. Uploading is the parent's job (AssetUploadComponent), since Section
+// 14 treats "which destination(s) to copy into" as one decision made once per upload
+// batch, not a property of a permanently-fixed per-destination zone - reload() is public
+// so the parent can refresh this section after a shared upload completes.
 @Component({
   selector: 'app-sponsor-destination-section',
   standalone: true,
@@ -35,11 +38,8 @@ export class SponsorDestinationSectionComponent implements OnInit {
 
   readonly files = signal<FileRow[]>([]);
   readonly loading = signal(true);
-  readonly uploading = signal(false);
   readonly saving = signal(false);
-  readonly dragOver = signal(false);
   readonly error = signal<string | null>(null);
-  readonly uploadErrors = signal<string[]>([]);
   readonly saved = signal(false);
 
   constructor(private sponsorAds: SponsorAdsService) {}
@@ -48,7 +48,7 @@ export class SponsorDestinationSectionComponent implements OnInit {
     this.reload();
   }
 
-  private async reload() {
+  async reload() {
     this.loading.set(true);
     try {
       const files = await this.sponsorAds.listFiles(this.eventId, this.tableNumber, this.destination);
@@ -59,53 +59,6 @@ export class SponsorDestinationSectionComponent implements OnInit {
       this.error.set('Could not load files for this destination.');
     } finally {
       this.loading.set(false);
-    }
-  }
-
-  onDragOver(event: DragEvent) {
-    event.preventDefault();
-    this.dragOver.set(true);
-  }
-
-  onDragLeave() {
-    this.dragOver.set(false);
-  }
-
-  async onDrop(event: DragEvent) {
-    event.preventDefault();
-    this.dragOver.set(false);
-    const files = event.dataTransfer?.files;
-    if (files && files.length > 0) {
-      await this.upload(Array.from(files));
-    }
-  }
-
-  async onFileInputChange(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      await this.upload(Array.from(input.files));
-      input.value = '';
-    }
-  }
-
-  private async upload(fileList: File[]) {
-    this.error.set(null);
-    this.uploadErrors.set([]);
-    this.uploading.set(true);
-    try {
-      const { results } = await this.sponsorAds.uploadFiles(
-        this.eventId,
-        this.tableNumber,
-        this.destination,
-        fileList
-      );
-      const failures = results.filter((r) => !r.ok).map((r) => `${r.filename}: ${r.error}`);
-      this.uploadErrors.set(failures);
-      await this.reload();
-    } catch {
-      this.error.set('Upload failed. Please try again.');
-    } finally {
-      this.uploading.set(false);
     }
   }
 

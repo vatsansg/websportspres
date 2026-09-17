@@ -118,27 +118,72 @@ export async function deleteSponsorAdFile(ctx, filename) {
   await containerClient.deleteBlob(`${folderPath}/${filename}`);
 }
 
-/**
- * Regenerates sponsorsequence.csv for one table/destination (Web BRD Sections 13/14).
- * @param {Array<{filename: string, duration: number|null}>} orderedFiles
- * @returns {Promise<string>} the blob path written, for change-log attribution.
- */
-export async function saveSponsorAdSequence(ctx, orderedFiles) {
-  const { containerClient, folderPath } = resolveContext(ctx);
+const MAX_SEQUENCE_WRITE_ATTEMPTS = 5;
+
+async function currentSequenceEtag(containerClient, folderPath) {
+  const blob = containerClient.getBlockBlobClient(`${folderPath}/${SEQUENCE_FILENAME}`);
+  try {
+    const props = await blob.getProperties();
+    return props.etag;
+  } catch (err) {
+    if (err.statusCode === 404) return undefined;
+    throw err;
+  }
+}
+
+async function writeSequenceCsvConditional(containerClient, folderPath, orderedFiles, etag) {
   const csv = buildSequenceCsv(orderedFiles);
   const blobPath = `${folderPath}/${SEQUENCE_FILENAME}`;
   const blob = containerClient.getBlockBlobClient(blobPath);
   await blob.upload(Buffer.from(csv, "utf8"), Buffer.byteLength(csv), {
     blobHTTPHeaders: { blobContentType: "text/csv" },
+    conditions: etag ? { ifMatch: etag } : { ifNoneMatch: "*" },
   });
   return blobPath;
 }
 
-/** Removes one file's row from sponsorsequence.csv, if present, without touching the rest. */
+/**
+ * Regenerates sponsorsequence.csv for one table/destination (Web BRD Sections 13/14) with
+ * the given explicit order. Uses ETag-conditional writes with retry, same pattern as the
+ * change log, so a concurrent write to the same file (another save, or a delete's implicit
+ * rewrite) is detected (412) and retried rather than silently lost.
+ * @param {Array<{filename: string, duration: number|null}>} orderedFiles
+ * @returns {Promise<string>} the blob path written, for change-log attribution.
+ */
+export async function saveSponsorAdSequence(ctx, orderedFiles) {
+  const { containerClient, folderPath } = resolveContext(ctx);
+  for (let attempt = 1; attempt <= MAX_SEQUENCE_WRITE_ATTEMPTS; attempt++) {
+    const etag = await currentSequenceEtag(containerClient, folderPath);
+    try {
+      return await writeSequenceCsvConditional(containerClient, folderPath, orderedFiles, etag);
+    } catch (err) {
+      if (err.statusCode === 412 && attempt < MAX_SEQUENCE_WRITE_ATTEMPTS) continue;
+      throw err;
+    }
+  }
+}
+
+/**
+ * Removes one file's row from sponsorsequence.csv, if present, without touching the rest.
+ * Re-reads the current listing on every retry attempt (not just the write), since the
+ * "was this file even sequenced" question needs to be re-evaluated against the latest
+ * state if a concurrent write is detected.
+ * @returns {Promise<string|null>} the blob path written, or null if the file wasn't sequenced.
+ */
 export async function removeFromSponsorAdSequence(ctx, filename) {
-  const files = await listSponsorAdFiles(ctx);
-  const sequencedCount = files.filter((f) => f.seqno !== null).length;
-  const remaining = files.filter((f) => f.filename !== filename && f.seqno !== null);
-  if (remaining.length === sequencedCount) return null; // wasn't sequenced
-  return saveSponsorAdSequence(ctx, remaining);
+  const { containerClient, folderPath } = resolveContext(ctx);
+  for (let attempt = 1; attempt <= MAX_SEQUENCE_WRITE_ATTEMPTS; attempt++) {
+    const files = await listSponsorAdFiles(ctx);
+    const sequencedCount = files.filter((f) => f.seqno !== null).length;
+    const remaining = files.filter((f) => f.filename !== filename && f.seqno !== null);
+    if (remaining.length === sequencedCount) return null; // wasn't sequenced
+
+    const etag = await currentSequenceEtag(containerClient, folderPath);
+    try {
+      return await writeSequenceCsvConditional(containerClient, folderPath, remaining, etag);
+    } catch (err) {
+      if (err.statusCode === 412 && attempt < MAX_SEQUENCE_WRITE_ATTEMPTS) continue;
+      throw err;
+    }
+  }
 }

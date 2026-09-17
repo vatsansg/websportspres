@@ -1,37 +1,8 @@
 <div class="wtt-destination-section">
   <h3>{{ label }}</h3>
 
-  <div
-    class="wtt-dropzone"
-    [class.wtt-dropzone--active]="dragOver()"
-    (dragover)="onDragOver($event)"
-    (dragleave)="onDragLeave()"
-    (drop)="onDrop($event)"
-  >
-    @if (uploading()) {
-      <span class="wtt-spinner" aria-hidden="true"></span>
-      <span>Uploading...</span>
-    } @else {
-      <span>Drag and drop PNG images or MP4 videos here, or</span>
-      <label class="wtt-browse-link">
-        browse
-        <input type="file" multiple accept=".png,.mp4" (change)="onFileInputChange($event)" hidden />
-      </label>
-    }
-  </div>
-
   @if (error()) {
     <p class="wtt-error" role="alert">{{ error() }}</p>
-  }
-  @if (uploadErrors().length > 0) {
-    <div class="wtt-error" role="alert">
-      <p><strong>Some files were rejected:</strong></p>
-      <ul>
-        @for (msg of uploadErrors(); track msg) {
-          <li>{{ msg }}</li>
-        }
-      </ul>
-    </div>
   }
   @if (saved()) {
     <p class="wtt-success" role="status">Sequence saved.</p>

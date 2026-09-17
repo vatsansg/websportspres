@@ -22,9 +22,13 @@ import { appendChangeLogEntry } from "../logging/assetChangeLog.js";
 // parent-route params alongside its own :destination/:filename.
 export const sponsorAdsRouter = Router({ mergeParams: true });
 
+// memoryStorage buffers the entire multipart body before any handler/validation runs, so
+// fileSize alone isn't enough - an unbounded number of near-limit parts in one request
+// could still exhaust worker memory before a single byte gets validated. Cap the part
+// count too; 50 is generous for a single Sponsor Ads batch upload.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: config.maxVideoUploadMb * 1024 * 1024 },
+  limits: { fileSize: config.maxVideoUploadMb * 1024 * 1024, files: 50 },
 });
 
 async function loadEventTableContext(req, res, next) {
@@ -86,6 +90,23 @@ function requireBlobSafeFilename(req, res, next) {
   next();
 }
 
+// multer's own errors (file too large, too many files) throw synchronously into the
+// upload middleware's callback rather than via the normal Express next(err) flow that
+// Express 5 auto-forwards for async handlers - without this wrapper they'd fall through to
+// the generic error handler as an unhelpful 500 instead of a clean, specific 400.
+function handleUpload(req, res, next) {
+  upload.array("files")(req, res, (err) => {
+    if (!err) return next();
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ error: `A file exceeds the maximum allowed size (${config.maxVideoUploadMb}MB)` });
+    }
+    if (err.code === "LIMIT_FILE_COUNT") {
+      return res.status(400).json({ error: "Too many files in one upload (maximum 50)" });
+    }
+    next(err);
+  });
+}
+
 sponsorAdsRouter.use(requireSession, loadEventTableContext);
 
 sponsorAdsRouter.get("/:destination", requireValidDestination, async (req, res) => {
@@ -96,7 +117,7 @@ sponsorAdsRouter.get("/:destination", requireValidDestination, async (req, res) 
 sponsorAdsRouter.post(
   "/:destination/upload",
   requireValidDestination,
-  upload.array("files"),
+  handleUpload,
   async (req, res) => {
     const files = req.files ?? [];
     if (files.length === 0) {
@@ -173,7 +194,7 @@ sponsorAdsRouter.delete(
     // Must run before the delete below: it detects whether the file was sequenced by
     // checking the current blob listing against sponsorsequence.csv, which only works
     // while the blob (and therefore the merged listing) still includes it.
-    await removeFromSponsorAdSequence(ctx, req.params.filename);
+    const sequenceRewritten = await removeFromSponsorAdSequence(ctx, req.params.filename);
     await deleteSponsorAdFile(ctx, req.params.filename);
     await appendChangeLogEntry({
       year: req.eventContext.year,
@@ -183,6 +204,19 @@ sponsorAdsRouter.delete(
       status: "Deleted",
       username: req.user.username,
     });
+    // The delete implicitly rewrote sponsorsequence.csv to drop this file's row - that's a
+    // real content change to a real file, so it needs its own audit entry too (Web BRD
+    // Section 24), same as the explicit PUT .../sequence route already logs.
+    if (sequenceRewritten) {
+      await appendChangeLogEntry({
+        year: req.eventContext.year,
+        eventId: req.eventContext.eventId,
+        eventName: req.eventContext.eventName,
+        filename: changeLogPath(req.eventContext.tableNumber, req.params.destination, "sponsorsequence.csv"),
+        status: "Updated",
+        username: req.user.username,
+      });
+    }
     res.json({ ok: true });
   }
 );
