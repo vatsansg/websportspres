@@ -1,0 +1,127 @@
+.wtt-destination-section {
+  background: var(--wtt-surface-raised);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  padding: var(--wtt-space-4);
+  margin-bottom: var(--wtt-space-4);
+}
+
+.wtt-destination-section h3 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wtt-space-2);
+  flex-wrap: wrap;
+  border: 2px dashed var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  padding: var(--wtt-space-6);
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-dropzone--active {
+  border-color: var(--wtt-orange);
+  background: rgba(255, 107, 0, 0.06);
+  opacity: 1;
+}
+
+.wtt-browse-link {
+  color: var(--wtt-blue);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.wtt-file-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-file-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--wtt-border);
+}
+
+.wtt-file-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--wtt-border);
+  vertical-align: middle;
+}
+
+.wtt-file-order {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.wtt-file-order button {
+  background: transparent;
+  border: 1px solid var(--wtt-border);
+  color: var(--wtt-white);
+  border-radius: var(--wtt-radius-sm);
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.wtt-file-order button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.wtt-duration-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+}
+
+.wtt-duration-cell input {
+  width: 70px;
+  background: #111;
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  color: var(--wtt-white);
+  padding: 0.35rem 0.5rem;
+}
+
+.wtt-cta--small {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  width: auto;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  border: 1px solid var(--wtt-border);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.wtt-remove-table {
+  background: transparent;
+  border: none;
+  color: var(--wtt-error);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}

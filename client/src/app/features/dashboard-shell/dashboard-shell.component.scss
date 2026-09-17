@@ -54,3 +54,20 @@
   opacity: 0.75;
   margin: 0 0 var(--wtt-space-6);
 }
+
+.wtt-shell-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  border: 1px solid var(--wtt-border);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}

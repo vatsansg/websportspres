@@ -190,3 +190,53 @@ eventsRouter.post(
     }
   }
 );
+
+// Minimal event picker for Step 3's Asset Upload page - the full Event List (Section 25.1:
+// Upload Assets shortcut, Export Event action, Log tab, ID-descending sort) is Step 6's
+// job. Filtered to Active only, same as Section 25.1, since there's no reason to upload
+// assets against an archived event.
+eventsRouter.get("/", requireSession, async (req, res) => {
+  const rows = await query(
+    "SELECT event_id, event_name, year, status FROM events WHERE status = 'Active' ORDER BY event_id DESC"
+  );
+  res.json(
+    rows.map((r) => ({ eventId: r.event_id, eventName: r.event_name, year: r.year, status: r.status }))
+  );
+});
+
+eventsRouter.get("/:eventId", requireSession, async (req, res) => {
+  const eventRows = await query(
+    "SELECT event_id, event_name, year, status FROM events WHERE event_id = ?",
+    [req.params.eventId]
+  );
+  if (eventRows.length === 0) {
+    return res.status(404).json({ error: "Event not found" });
+  }
+  const tableRows = await query(
+    `SELECT table_number, inner_led, outer_led, main_led,
+            inner_resolution_width, inner_resolution_height,
+            outer_resolution_width, outer_resolution_height,
+            main_resolution_width, main_resolution_height
+     FROM event_tables WHERE event_id = ? ORDER BY table_number`,
+    [req.params.eventId]
+  );
+  const event = eventRows[0];
+  res.json({
+    eventId: event.event_id,
+    eventName: event.event_name,
+    year: event.year,
+    status: event.status,
+    tables: tableRows.map((t) => ({
+      tableNumber: t.table_number,
+      innerLed: !!t.inner_led,
+      outerLed: !!t.outer_led,
+      mainLed: !!t.main_led,
+      innerResolutionWidth: t.inner_resolution_width,
+      innerResolutionHeight: t.inner_resolution_height,
+      outerResolutionWidth: t.outer_resolution_width,
+      outerResolutionHeight: t.outer_resolution_height,
+      mainResolutionWidth: t.main_resolution_width,
+      mainResolutionHeight: t.main_resolution_height,
+    })),
+  });
+});

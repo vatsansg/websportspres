@@ -1,0 +1,107 @@
+<div class="wtt-destination-section">
+  <h3>{{ label }}</h3>
+
+  <div
+    class="wtt-dropzone"
+    [class.wtt-dropzone--active]="dragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+  >
+    @if (uploading()) {
+      <span class="wtt-spinner" aria-hidden="true"></span>
+      <span>Uploading...</span>
+    } @else {
+      <span>Drag and drop PNG images or MP4 videos here, or</span>
+      <label class="wtt-browse-link">
+        browse
+        <input type="file" multiple accept=".png,.mp4" (change)="onFileInputChange($event)" hidden />
+      </label>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="wtt-error" role="alert">{{ error() }}</p>
+  }
+  @if (uploadErrors().length > 0) {
+    <div class="wtt-error" role="alert">
+      <p><strong>Some files were rejected:</strong></p>
+      <ul>
+        @for (msg of uploadErrors(); track msg) {
+          <li>{{ msg }}</li>
+        }
+      </ul>
+    </div>
+  }
+  @if (saved()) {
+    <p class="wtt-success" role="status">Sequence saved.</p>
+  }
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading files...</p>
+  } @else if (files().length === 0) {
+    <p class="wtt-field-hint">No files uploaded yet for this destination.</p>
+  } @else {
+    <table class="wtt-file-table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Filename</th>
+          <th>Duration (seconds)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (file of files(); track file.filename; let i = $index) {
+          <tr>
+            <td class="wtt-file-order">
+              <button type="button" (click)="moveUp(i)" [disabled]="i === 0" aria-label="Move up">&uarr;</button>
+              <button
+                type="button"
+                (click)="moveDown(i)"
+                [disabled]="i === files().length - 1"
+                aria-label="Move down"
+              >
+                &darr;
+              </button>
+            </td>
+            <td>{{ file.filename }}</td>
+            <td class="wtt-duration-cell">
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="file.duration"
+                [name]="'duration-' + file.filename"
+              />
+              @if (file.isVideo) {
+                <button
+                  class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                  type="button"
+                  [disabled]="file.retrievingDuration"
+                  (click)="retrieveDuration(file)"
+                >
+                  @if (file.retrievingDuration) {
+                    <span class="wtt-spinner" aria-hidden="true"></span>
+                  }
+                  Retrieve Video Duration
+                </button>
+              }
+            </td>
+            <td>
+              <button class="wtt-remove-table" type="button" aria-label="Delete file" (click)="deleteFile(file)">
+                &times;
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <button class="wtt-cta wtt-cta--small" type="button" [disabled]="saving()" (click)="saveSequence()">
+      @if (saving()) {
+        <span class="wtt-spinner" aria-hidden="true"></span>
+      }
+      Save Sequence
+    </button>
+  }
+</div>
