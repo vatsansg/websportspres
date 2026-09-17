@@ -197,7 +197,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 |---|---|---|---|
 | 1 | Complete | 2026-09-16 | `1ae97de` (pushed to `origin/main` by user 2026-09-16, after Claude Code's safety layer repeatedly blocked the push from this session) |
 | 2 | Complete | 2026-09-17 | `a0d2ee1` (merged and pushed to `origin/main`) |
-| 3 | Complete | 2026-09-17 | (merged to `main` on go-ahead) |
+| 3 | Complete | 2026-09-17 | `29f702d` (merged and pushed to `origin/main`) |
 | 4 | Not started | | |
 | 5 | Not started | | |
 | 6 | Not started | | |
