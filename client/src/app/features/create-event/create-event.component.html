@@ -1,5 +1,27 @@
 <div class="wtt-page">
   <div class="wtt-card wtt-create-card">
+    @if (createdEvent()) {
+      <h1>Event Created</h1>
+      <p class="wtt-subtitle">Your event and its storage folder structure are ready.</p>
+
+      <p class="wtt-success" role="status">
+        Event <strong>{{ createdEvent()!.eventId }}</strong> — {{ createdEvent()!.eventName }}
+        ({{ createdEvent()!.year }}) has been saved, and its Azure Storage folder structure
+        (tables, LED destination folders, and template files) has been created.
+      </p>
+
+      <div class="wtt-field">
+        <label>Storage Location</label>
+        <div class="wtt-storage-url">{{ createdEvent()!.eventStorageUrl }}</div>
+      </div>
+
+      <div class="wtt-actions">
+        <button class="wtt-cta" type="button" (click)="goToDashboard()">Go to Dashboard</button>
+        <button class="wtt-cta wtt-cta--secondary" type="button" (click)="createAnother()">
+          Create Another Event
+        </button>
+      </div>
+    } @else {
     <h1>Create Event</h1>
     <p class="wtt-subtitle">Set up a new event and its storage folder structure.</p>
 
@@ -12,9 +34,11 @@
           [(ngModel)]="eventId"
           required
           maxlength="20"
+          inputmode="numeric"
+          pattern="[0-9]+"
           placeholder="e.g. 2201"
         />
-        <span class="wtt-field-hint">Must be unique across all events, all years.</span>
+        <span class="wtt-field-hint">Numeric only. Must be unique across all events, all years.</span>
       </div>
 
       <div class="wtt-field">
@@ -107,5 +131,6 @@
         <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancel()">Cancel</button>
       </div>
     </form>
+    }
   </div>
 </div>

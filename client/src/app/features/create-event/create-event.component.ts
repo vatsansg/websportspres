@@ -3,7 +3,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { EventsService, TableConfig } from '../../core/events.service';
+import { CreateEventResponse, EventsService, TableConfig } from '../../core/events.service';
+
+const EVENT_ID_PATTERN = /^[0-9]+$/;
 
 // Web BRD Section 5/9: every event starts with Table 1, which can never be removed here.
 // Additional tables can be added/removed freely before creation - Step 4's asset
@@ -27,6 +29,7 @@ export class CreateEventComponent {
 
   readonly error = signal<string | null>(null);
   readonly loading = signal(false);
+  readonly createdEvent = signal<CreateEventResponse | null>(null);
 
   constructor(private events: EventsService, private router: Router) {}
 
@@ -51,6 +54,7 @@ export class CreateEventComponent {
 
   private validate(): string | null {
     if (!this.eventId.trim()) return 'Event ID is required.';
+    if (!EVENT_ID_PATTERN.test(this.eventId.trim())) return 'Event ID must be numeric.';
     if (/wtt/i.test(this.eventName)) return 'Event Name must not contain "WTT".';
     if (!this.eventName.trim()) return 'Event Name is required.';
     for (const table of this.tables) {
@@ -77,7 +81,7 @@ export class CreateEventComponent {
         year: this.year,
         tables: this.tables,
       });
-      this.router.navigateByUrl('/', { state: { createdEventId: created.eventId } });
+      this.createdEvent.set(created);
     } catch (err) {
       if (err instanceof HttpErrorResponse) {
         if (err.status === 409) {
@@ -102,5 +106,17 @@ export class CreateEventComponent {
 
   cancel() {
     this.router.navigateByUrl('/');
+  }
+
+  goToDashboard() {
+    this.router.navigateByUrl('/');
+  }
+
+  createAnother() {
+    this.createdEvent.set(null);
+    this.eventId = '';
+    this.eventName = '';
+    this.year = new Date().getFullYear();
+    this.tables = [newTable(1)];
   }
 }

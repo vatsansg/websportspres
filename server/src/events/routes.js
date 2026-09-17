@@ -25,6 +25,11 @@ const eventCreationLimiter = rateLimit({
 // the intended single event folder, and other control characters are invalid in blob names.
 const BLOB_SAFE_PATTERN = /^[^/\\\x00-\x1f]+$/;
 
+// Event ID is numeric-only (confirmed by user testing, matches the real sample event's
+// "1111" convention) - kept as a string (not converted to a number) so leading zeros are
+// preserved exactly and the DB column stays VARCHAR(20) as already built.
+const NUMERIC_PATTERN = /^[0-9]+$/;
+
 function validateTables(tables) {
   const errors = [];
   if (!Array.isArray(tables) || tables.length === 0) {
@@ -75,7 +80,12 @@ eventsRouter.post(
   "/",
   requireSession,
   eventCreationLimiter,
-  body("eventId").isString().trim().isLength({ min: 1, max: 20 }).matches(BLOB_SAFE_PATTERN),
+  body("eventId")
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 20 })
+    .matches(NUMERIC_PATTERN)
+    .withMessage("Event ID must be numeric"),
   body("eventName")
     .isString()
     .trim()
