@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import { authRouter } from "./auth/routes.js";
 import { healthRouter } from "./routes/health.js";
 import { configRouter } from "./routes/config.js";
+import { eventsRouter } from "./events/routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -49,6 +50,7 @@ export function createApp() {
   app.use("/api/auth", authRouter);
   app.use("/api/health", healthRouter);
   app.use("/api/config", configRouter);
+  app.use("/api/events", eventsRouter);
 
   app.use(errorHandler);
   return app;
