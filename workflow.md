@@ -126,9 +126,9 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 - **Further follow-on (2026-09-17)**: the "Upload to:" Inner/Outer checkbox group (Web BRD Section 14's "copy to both destinations" picker) now only renders when a table has *both* Inner and Outer enabled - when only one is enabled there's no real choice to make, so the checkboxes were pure clutter. `AssetUploadComponent.onTableChange()` already defaulted `uploadToInner`/`uploadToOuter` from the table's own LED flags independent of whether the checkboxes render, so hiding the group when only one destination exists needed no logic change, just a template condition (`asset-upload.component.html`). Deployed to `dev`; not re-verified live this round due to a recurring Claude-in-Chrome tab-desync issue (5 consecutive failed attempts) - confirmed via code review only, flagged here honestly rather than claimed as live-tested.
 
 ## Step 4 — Asset Upload – OVR Triggers
-- **Status:** Complete, independent review approved with notes (all findings fixed and re-verified live); awaiting user go-ahead
+- **Status:** Complete
 - **Includes:** Standard OVR triggers, Champion Winning Moment (4.6), OVR Trigger Preview (4.7), resolution-aware media validation (4.8), validation pipeline (4.9).
-- **Completed on:**
+- **Completed on:** 2026-09-17
 - **What was built:**
   - **Backend:**
     - `server/src/ovrTriggers/templateConfig.js` — `OVR_TRIGGER_TYPES` (10 trigger types, now reconciled against the real `asset_management_templates.json` — see kickoff decision 1 for its actual location and the one divergence the independent review caught) plus the separate `ALL_SPONSOR_LOGO` constant (Section 22's own one-off rule, deliberately excluded from the generic array).
@@ -183,6 +183,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
   4. **Placement of the Default Assets UI**: my own interpretation of the user's answer, flagged here for correction if wrong — a Default section added to the existing Sponsor Ads tab for Inner/Outer (alongside the sections built in Step 3), and a separate Default section added to the OVR Triggers tab for Main LED (since Main LED has no presence on the Sponsor Ads tab at all).
 - **Deviations from plan (if any):**
   - **All Sponsor Logo (Section 22) is rendered on the OVR Match Triggers tab, not the Sponsor Ads tab** — my own UI placement call, not explicitly specified by the BRD or the user. Reasoning: it isn't part of the sponsor ad sequencing/ordering feature Step 3 built (no `seqno`/duration, no `sponsorsequence.csv` row), even though it's visually a sponsor asset — grouped instead with the other one-off/special trigger types (RPI, Default Assets). Flagged for correction if the user wants it moved to the Sponsor Ads tab instead.
+- **User go-ahead:** 2026-09-17 — "Commit Step 4" (no separate testing round requested; user opted to test Steps 4/5/6 together). Committed directly to `main` (`294bb4c`) — no dedicated `step-4-*` branch was cut this session (a process deviation from Steps 1-3's branch-per-step pattern, noted here rather than silently done differently), then pushed to `origin/main`.
 
 ## Step 5 — Event Configuration – Add / Change / Delete
 - **Status:** Not started
@@ -251,7 +252,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 | 1 | Complete | 2026-09-16 | `1ae97de` (pushed to `origin/main` by user 2026-09-16, after Claude Code's safety layer repeatedly blocked the push from this session) |
 | 2 | Complete | 2026-09-17 | `a0d2ee1` (merged and pushed to `origin/main`) |
 | 3 | Complete | 2026-09-17 | `29f702d` (merged and pushed to `origin/main`) |
-| 4 | Independent review approved with notes, all fixed | | |
+| 4 | Complete | 2026-09-17 | `294bb4c` (committed directly to `main`, pushed to `origin/main`) |
 | 5 | Not started | | |
 | 6 | Not started | | |
 | 7 | Not started | | |
