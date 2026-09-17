@@ -1,0 +1,142 @@
+.wtt-destination-section {
+  background: var(--wtt-surface-raised);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  padding: var(--wtt-space-4);
+  margin-bottom: var(--wtt-space-4);
+}
+
+.wtt-destination-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wtt-space-3);
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-destination-section h3 {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.wtt-cta--small {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  width: auto;
+  white-space: nowrap;
+}
+
+// Side-by-side Inner/Outer columns give this table roughly half the width it had when
+// stacked - without table-layout: fixed, a row with a video's "Retrieve Video Duration"
+// button could force the Duration column wide enough to push the Delete column outside
+// the visible area entirely (looked like the delete button had vanished).
+.wtt-file-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-file-table th:nth-child(1),
+.wtt-file-table td:nth-child(1) {
+  width: 54px;
+}
+
+.wtt-file-table th:nth-child(3),
+.wtt-file-table td:nth-child(3) {
+  width: 300px;
+}
+
+.wtt-file-table th:nth-child(4),
+.wtt-file-table td:nth-child(4) {
+  width: 32px;
+}
+
+.wtt-file-table th {
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.6;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--wtt-border);
+}
+
+.wtt-file-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--wtt-border);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wtt-file-order {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.wtt-file-order button {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--wtt-white);
+  border-radius: var(--wtt-radius-sm);
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.wtt-file-order button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+// Horizontal, not stacked - keeps every row (with or without the Retrieve Video
+// Duration button) the same height. Needs the wider Duration column above to fit both
+// the input and the button on one line without wrapping.
+.wtt-duration-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+}
+
+.wtt-duration-cell input {
+  width: 70px;
+  flex-shrink: 0;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--wtt-radius-sm);
+  color: var(--wtt-white);
+  padding: 0.35rem 0.5rem;
+}
+
+.wtt-duration-cell .wtt-cta--small {
+  white-space: nowrap;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  // var(--wtt-border) is too subtle for an interactive control the user needs to
+  // recognize as clickable (it's fine for decorative card/table dividers, which is what
+  // it's mostly used for) - same contrast issue as the <select> fix, applied here too.
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.wtt-remove-table {
+  background: transparent;
+  border: none;
+  color: var(--wtt-error);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}

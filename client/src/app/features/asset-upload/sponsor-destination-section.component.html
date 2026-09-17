@@ -1,0 +1,82 @@
+<div class="wtt-destination-section">
+  <div class="wtt-destination-section__header">
+    <h3>{{ label }}</h3>
+    @if (files().length > 0) {
+      <button class="wtt-cta wtt-cta--small" type="button" [disabled]="saving()" (click)="saveSequence()">
+        @if (saving()) {
+          <span class="wtt-spinner" aria-hidden="true"></span>
+        }
+        Save Sequence for {{ label }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="wtt-error" role="alert">{{ error() }}</p>
+  }
+  @if (saved()) {
+    <p class="wtt-success" role="status">Sequence saved.</p>
+  }
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading files...</p>
+  } @else if (files().length === 0) {
+    <p class="wtt-field-hint">No files uploaded yet for this destination.</p>
+  } @else {
+    <table class="wtt-file-table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Filename</th>
+          <th>Duration (seconds)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (file of files(); track file.filename; let i = $index) {
+          <tr>
+            <td class="wtt-file-order">
+              <button type="button" (click)="moveUp(i)" [disabled]="i === 0" aria-label="Move up">&uarr;</button>
+              <button
+                type="button"
+                (click)="moveDown(i)"
+                [disabled]="i === files().length - 1"
+                aria-label="Move down"
+              >
+                &darr;
+              </button>
+            </td>
+            <td>{{ file.filename }}</td>
+            <td class="wtt-duration-cell">
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="file.duration"
+                (ngModelChange)="markDirty()"
+                [name]="'duration-' + file.filename"
+              />
+              @if (file.isVideo) {
+                <button
+                  class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                  type="button"
+                  [disabled]="file.retrievingDuration"
+                  (click)="retrieveDuration(file)"
+                >
+                  @if (file.retrievingDuration) {
+                    <span class="wtt-spinner" aria-hidden="true"></span>
+                  }
+                  Retrieve Video Duration
+                </button>
+              }
+            </td>
+            <td>
+              <button class="wtt-remove-table" type="button" aria-label="Delete file" (click)="deleteFile(file)">
+                &times;
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

@@ -6,6 +6,7 @@ import { authRouter } from "./auth/routes.js";
 import { healthRouter } from "./routes/health.js";
 import { configRouter } from "./routes/config.js";
 import { eventsRouter } from "./events/routes.js";
+import { sponsorAdsRouter } from "./sponsorAds/routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -51,6 +52,7 @@ export function createApp() {
   app.use("/api/health", healthRouter);
   app.use("/api/config", configRouter);
   app.use("/api/events", eventsRouter);
+  app.use("/api/events/:eventId/tables/:tableNumber/sponsor-ads", sponsorAdsRouter);
 
   app.use(errorHandler);
   return app;

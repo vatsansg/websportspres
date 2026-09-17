@@ -1,0 +1,142 @@
+<div class="wtt-page">
+  <div class="wtt-card wtt-upload-card">
+    <div class="wtt-upload-header">
+      <div>
+        <h1>Asset Upload</h1>
+        <p class="wtt-subtitle">Upload and arrange Sponsor Ad assets for an event.</p>
+      </div>
+      <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="goToDashboard()">
+        &larr; Back to Dashboard
+      </button>
+    </div>
+
+    <div class="wtt-tabs">
+      <button class="wtt-tab wtt-tab--active" type="button">Sponsor Ads</button>
+      <button class="wtt-tab" type="button" disabled title="Built in a later step">OVR Match Triggers</button>
+    </div>
+
+    <div class="wtt-field">
+      <label for="eventSelect">Event</label>
+      @if (loadingEvents()) {
+        <p class="wtt-field-hint">Loading events...</p>
+      } @else {
+        <select
+          id="eventSelect"
+          [ngModel]="selectedEventId()"
+          (ngModelChange)="onEventChange($event)"
+        >
+          <option value="">Select an event...</option>
+          @for (event of events(); track event.eventId) {
+            <option [value]="event.eventId">{{ event.eventId }} - {{ event.eventName }}</option>
+          }
+        </select>
+      }
+    </div>
+
+    @if (loadingEventDetail()) {
+      <p class="wtt-field-hint">Loading event details...</p>
+    }
+
+    @if (eventDetail()) {
+      <div class="wtt-field">
+        <label for="tableSelect">Table</label>
+        <select
+          id="tableSelect"
+          [ngModel]="selectedTableNumber()"
+          (ngModelChange)="onTableChange($event)"
+        >
+          @for (table of eventDetail()!.tables; track table.tableNumber) {
+            <option [value]="table.tableNumber">Table {{ table.tableNumber }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="wtt-error" role="alert">{{ error() }}</p>
+    }
+
+    @if (selectedTable) {
+      @if (!selectedTable.innerLed && !selectedTable.outerLed) {
+        <p class="wtt-field-hint">No Sponsor Surround LED Types have been selected for this table.</p>
+      }
+
+      @if (selectedTable.innerLed || selectedTable.outerLed) {
+        <div class="wtt-upload-area">
+          <div class="wtt-upload-destinations">
+            <span class="wtt-upload-destinations__label">Upload to:</span>
+            @if (selectedTable.innerLed) {
+              <label class="wtt-checkbox">
+                <input type="checkbox" [(ngModel)]="uploadToInner" name="uploadToInner" />
+                Inner Surround
+              </label>
+            }
+            @if (selectedTable.outerLed) {
+              <label class="wtt-checkbox">
+                <input type="checkbox" [(ngModel)]="uploadToOuter" name="uploadToOuter" />
+                Outer Surround
+              </label>
+            }
+          </div>
+
+          <div
+            class="wtt-dropzone"
+            [class.wtt-dropzone--active]="dragOver()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave()"
+            (drop)="onDrop($event)"
+          >
+            @if (uploading()) {
+              <div class="wtt-upload-progress">
+                <span>Uploading... {{ uploadProgress() }}%</span>
+                <div class="wtt-progress-track">
+                  <div class="wtt-progress-fill" [style.width.%]="uploadProgress()"></div>
+                </div>
+              </div>
+            } @else {
+              <span>Drag and drop PNG images or MP4 videos here, or</span>
+              <label class="wtt-browse-link">
+                browse
+                <input type="file" multiple accept=".png,.mp4" (change)="onFileInputChange($event)" hidden />
+              </label>
+            }
+          </div>
+
+          @if (uploadErrors().length > 0) {
+            <div class="wtt-error" role="alert">
+              <p><strong>Some files were rejected:</strong></p>
+              <ul>
+                @for (msg of uploadErrors(); track msg) {
+                  <li>{{ msg }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="wtt-destination-columns">
+        @if (selectedTable.innerLed) {
+          <app-sponsor-destination-section
+            #innerSectionRef
+            [eventId]="selectedEventId()!"
+            [tableNumber]="selectedTable.tableNumber"
+            destination="inner"
+            label="Inner Surround"
+            (sequenceSaved)="onSequenceSaved()"
+          />
+        }
+        @if (selectedTable.outerLed) {
+          <app-sponsor-destination-section
+            #outerSectionRef
+            [eventId]="selectedEventId()!"
+            [tableNumber]="selectedTable.tableNumber"
+            destination="outer"
+            label="Outer Surround"
+            (sequenceSaved)="onSequenceSaved()"
+          />
+        }
+      </div>
+    }
+  </div>
+</div>

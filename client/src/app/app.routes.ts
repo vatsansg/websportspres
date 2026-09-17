@@ -28,6 +28,14 @@ export const routes: Routes = [
       ),
   },
   {
+    path: 'asset-upload',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/asset-upload/asset-upload.component').then(
+        (m) => m.AssetUploadComponent
+      ),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () =>

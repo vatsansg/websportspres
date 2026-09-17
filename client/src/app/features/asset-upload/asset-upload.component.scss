@@ -1,0 +1,199 @@
+.wtt-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: radial-gradient(circle at 50% 0%, #141414 0%, #000 65%);
+}
+
+.wtt-upload-card {
+  width: 100%;
+  max-width: 1080px;
+}
+
+.wtt-upload-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--wtt-space-4);
+}
+
+.wtt-cta--small {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  width: auto;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}
+
+.wtt-subtitle {
+  opacity: 0.6;
+  font-size: 0.85rem;
+  margin: 0 0 1.75rem;
+}
+
+.wtt-tabs {
+  display: flex;
+  gap: var(--wtt-space-2);
+  margin-bottom: var(--wtt-space-6);
+  border-bottom: 1px solid var(--wtt-border);
+}
+
+.wtt-tab {
+  background: transparent;
+  border: none;
+  color: var(--wtt-white);
+  opacity: 0.5;
+  padding: 0.6rem 0.2rem;
+  font-family: var(--wtt-font-body);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-right: var(--wtt-space-4);
+}
+
+.wtt-tab--active {
+  opacity: 1;
+  color: var(--wtt-orange);
+  border-bottom-color: var(--wtt-orange);
+}
+
+.wtt-tab:disabled {
+  cursor: not-allowed;
+}
+
+.wtt-field select {
+  // Without this, some browsers/OS combinations render the native dropdown's popup
+  // list and arrow using light-mode OS chrome even though the page itself is dark,
+  // making the control look borderless/invisible against a black background.
+  color-scheme: dark;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--wtt-radius-sm);
+  color: var(--wtt-white);
+  font-family: var(--wtt-font-body);
+  padding: 0.7rem 0.85rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.wtt-field select:hover,
+.wtt-field select:focus {
+  border-color: var(--wtt-teal);
+}
+
+.wtt-destination-columns {
+  display: flex;
+  gap: var(--wtt-space-4);
+  align-items: flex-start;
+}
+
+.wtt-destination-columns > * {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .wtt-destination-columns {
+    flex-direction: column;
+  }
+}
+
+.wtt-upload-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--wtt-space-2);
+  width: 100%;
+}
+
+.wtt-progress-track {
+  width: 100%;
+  max-width: 320px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.wtt-progress-fill {
+  height: 100%;
+  background: var(--wtt-orange);
+  transition: width 0.15s ease;
+}
+
+.wtt-upload-area {
+  margin-bottom: var(--wtt-space-6);
+}
+
+.wtt-upload-destinations {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-4);
+  margin-bottom: var(--wtt-space-3);
+  flex-wrap: wrap;
+}
+
+.wtt-upload-destinations__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wtt-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.wtt-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--wtt-orange);
+  cursor: pointer;
+}
+
+.wtt-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wtt-space-2);
+  flex-wrap: wrap;
+  border: 2px dashed var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  padding: var(--wtt-space-6);
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: var(--wtt-space-3);
+}
+
+.wtt-dropzone--active {
+  border-color: var(--wtt-orange);
+  background: rgba(255, 107, 0, 0.06);
+  opacity: 1;
+}
+
+.wtt-browse-link {
+  color: var(--wtt-blue);
+  cursor: pointer;
+  text-decoration: underline;
+}
