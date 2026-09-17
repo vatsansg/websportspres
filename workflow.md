@@ -46,7 +46,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 - **Deployed and verified live** on the `dev` slot (`https://app-sportspres-assetmgmt-dev.azurewebsites.net`) — production slot deliberately left untouched throughout (a direct production deploy attempt was correctly blocked by Claude Code's own safety layer before user review). User personally confirmed live Super Admin login/logout and Azure AD login/logout (as `vatsan@worldtabletennis.com`, `Administrator` role), and checked the MySQL schema directly.
 
 ## Step 2 — Event Creation and Event Configuration
-- **Status:** Complete — awaiting user go-ahead
+- **Status:** Complete (user go-ahead given 2026-09-17)
 - **Includes:** Event creation, `Status` field (Active/Archive, single field — Web BRD v2.6), per-table LED Resolution Configuration (Step 2.4, defaults only — no override UI built yet, see deviations).
 - **Completed on:** 2026-09-16
 - **What was built:**
@@ -165,7 +165,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 | Step | Status | Go-ahead date | GitHub commit |
 |---|---|---|---|
 | 1 | Complete | 2026-09-16 | `1ae97de` (pushed to `origin/main` by user 2026-09-16, after Claude Code's safety layer repeatedly blocked the push from this session) |
-| 2 | Complete — awaiting user go-ahead | | |
+| 2 | Complete | 2026-09-17 | (merged to `main` on go-ahead) |
 | 3 | Not started | | |
 | 4 | Not started | | |
 | 5 | Not started | | |
