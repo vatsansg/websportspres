@@ -12,13 +12,14 @@ const FORBIDDEN_FILENAME_TERMS = ["led", "ovr"];
 // defense-in-depth reasoning as Step 2's eventId/eventName blob-safety check.
 const BLOB_SAFE_PATTERN = /^[^/\\\x00-\x1f]+$/;
 
-// "Sports Press - LED Display Media Specifications" doc, Surrounds LED (Inner & Outer)
-// section - the only spec that applies to Sponsor Ads (Web BRD Section 11.1: Main LED
-// never applies). The doc's own "80 Mbps" video field is ambiguous (mixes a bitrate unit
-// into a field labeled max file size) - per the user's explicit decision, ignored in favor
+// "Sports Press - LED Display Media Specifications" doc: format/bit-depth/file-size are
+// fixed, application-wide constants - only the expected WIDTH/HEIGHT is per-table/per-LED-
+// type, sourced from event_tables (Web BRD Section 31), per the user's explicit decision
+// to treat event_tables as the single source of truth for resolution rather than a fixed
+// app-wide value. The doc's own "80 Mbps" video field is ambiguous (mixes a bitrate unit
+// into a field labeled max file size) - per an earlier explicit decision, ignored in favor
 // of relying solely on the BRD's own unambiguous 100MB application-wide cap (Section 27.1).
-const IMAGE_SPEC = { width: 1920, height: 1080, bitsPerPixel: 32, maxBytes: 4 * 1024 * 1024 };
-const VIDEO_SPEC = { width: 1920, height: 1080 };
+const IMAGE_SPEC = { bitsPerPixel: 32, maxBytes: 4 * 1024 * 1024 };
 
 export function isVideoFilename(filename) {
   return filename.toLowerCase().endsWith(".mp4");
@@ -48,9 +49,11 @@ export function validateFilename(filename) {
 /**
  * @param {string} filename
  * @param {Buffer} buffer
+ * @param {{ width: number, height: number }} expectedResolution - from event_tables for
+ *   this specific table/LED destination (Web BRD Section 31), not a fixed app-wide value.
  * @returns {string | null} a human-readable validation error, or null if the file is valid.
  */
-export function validateSponsorAdFile(filename, buffer) {
+export function validateSponsorAdFile(filename, buffer, expectedResolution) {
   const filenameError = validateFilename(filename);
   if (filenameError) return filenameError;
 
@@ -60,8 +63,8 @@ export function validateSponsorAdFile(filename, buffer) {
   if (ext === ".png") {
     const header = parsePngHeader(buffer);
     if (!header) return "Not a valid PNG file";
-    if (header.width !== IMAGE_SPEC.width || header.height !== IMAGE_SPEC.height) {
-      return `Image must be ${IMAGE_SPEC.width}x${IMAGE_SPEC.height} (got ${header.width}x${header.height})`;
+    if (header.width !== expectedResolution.width || header.height !== expectedResolution.height) {
+      return `Image must be ${expectedResolution.width}x${expectedResolution.height} (got ${header.width}x${header.height})`;
     }
     if (header.bitsPerPixel !== IMAGE_SPEC.bitsPerPixel) {
       return `Image must be 32-bit (got ${header.bitsPerPixel}-bit)`;
@@ -79,8 +82,8 @@ export function validateSponsorAdFile(filename, buffer) {
     }
     const meta = parseMp4Metadata(buffer);
     if (!meta) return "Not a valid MP4 file";
-    if (meta.width !== VIDEO_SPEC.width || meta.height !== VIDEO_SPEC.height) {
-      return `Video must be ${VIDEO_SPEC.width}x${VIDEO_SPEC.height} (got ${meta.width}x${meta.height})`;
+    if (meta.width !== expectedResolution.width || meta.height !== expectedResolution.height) {
+      return `Video must be ${expectedResolution.width}x${expectedResolution.height} (got ${meta.width}x${meta.height})`;
     }
     return null;
   }

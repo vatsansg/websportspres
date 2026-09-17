@@ -40,19 +40,39 @@ async function loadEventTableContext(req, res, next) {
   if (eventRows.length === 0) return res.status(404).json({ error: "Event not found" });
 
   const tableRows = await query(
-    "SELECT table_number, inner_led, outer_led FROM event_tables WHERE event_id = ? AND table_number = ?",
+    `SELECT table_number, inner_led, outer_led,
+            inner_resolution_width, inner_resolution_height,
+            outer_resolution_width, outer_resolution_height,
+            main_resolution_width, main_resolution_height
+     FROM event_tables WHERE event_id = ? AND table_number = ?`,
     [eventId, tableNumber]
   );
   if (tableRows.length === 0) return res.status(404).json({ error: "Table not found for this event" });
 
+  const t = tableRows[0];
   req.eventContext = {
     year: eventRows[0].year,
     eventId: eventRows[0].event_id,
     eventName: eventRows[0].event_name,
     tableNumber: Number(tableNumber),
-    table: { innerLed: !!tableRows[0].inner_led, outerLed: !!tableRows[0].outer_led },
+    table: {
+      innerLed: !!t.inner_led,
+      outerLed: !!t.outer_led,
+      innerResolution: { width: t.inner_resolution_width, height: t.inner_resolution_height },
+      outerResolution: { width: t.outer_resolution_width, height: t.outer_resolution_height },
+      mainResolution: { width: t.main_resolution_width, height: t.main_resolution_height },
+    },
   };
   next();
+}
+
+// Web BRD Section 31: resolution is per-table, per-LED-type, stored on event_tables - not
+// a fixed app-wide value. Named generically (not "sponsor-ads-only") so Step 4's OVR
+// Trigger validation (which does use Main LED) can reuse the same lookup unchanged.
+function resolutionForDestination(table, destination) {
+  if (destination === "inner") return table.innerResolution;
+  if (destination === "outer") return table.outerResolution;
+  return table.mainResolution;
 }
 
 // Web BRD Section 11.1: only Inner/Outer are ever valid Sponsor Ads destinations, and only
@@ -124,9 +144,10 @@ sponsorAdsRouter.post(
       return res.status(400).json({ error: "No files were provided" });
     }
 
+    const expectedResolution = resolutionForDestination(req.eventContext.table, req.params.destination);
     const results = [];
     for (const file of files) {
-      const validationError = validateSponsorAdFile(file.originalname, file.buffer);
+      const validationError = validateSponsorAdFile(file.originalname, file.buffer, expectedResolution);
       if (validationError) {
         results.push({ filename: file.originalname, ok: false, error: validationError });
         continue;

@@ -1,5 +1,15 @@
 <div class="wtt-destination-section">
-  <h3>{{ label }}</h3>
+  <div class="wtt-destination-section__header">
+    <h3>{{ label }}</h3>
+    @if (files().length > 0) {
+      <button class="wtt-cta wtt-cta--small" type="button" [disabled]="saving()" (click)="saveSequence()">
+        @if (saving()) {
+          <span class="wtt-spinner" aria-hidden="true"></span>
+        }
+        Save Sequence for {{ label }}
+      </button>
+    }
+  </div>
 
   @if (error()) {
     <p class="wtt-error" role="alert">{{ error() }}</p>
@@ -68,12 +78,5 @@
         }
       </tbody>
     </table>
-
-    <button class="wtt-cta wtt-cta--small" type="button" [disabled]="saving()" (click)="saveSequence()">
-      @if (saving()) {
-        <span class="wtt-spinner" aria-hidden="true"></span>
-      }
-      Save Sequence for {{ label }}
-    </button>
   }
 </div>

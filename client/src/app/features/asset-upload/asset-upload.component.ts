@@ -127,6 +127,14 @@ export class AssetUploadComponent implements OnInit {
     return destinations;
   }
 
+  // A stale "Some files were rejected" message from an earlier upload attempt would
+  // otherwise linger indefinitely - nothing else clears it. Treat a destination's Save
+  // Sequence as the user moving on, and clear it then.
+  onSequenceSaved() {
+    this.uploadErrors.set([]);
+    this.error.set(null);
+  }
+
   onDragOver(event: DragEvent) {
     event.preventDefault();
     this.dragOver.set(true);

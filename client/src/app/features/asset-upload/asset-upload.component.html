@@ -123,6 +123,7 @@
             [tableNumber]="selectedTable.tableNumber"
             destination="inner"
             label="Inner Surround"
+            (sequenceSaved)="onSequenceSaved()"
           />
         }
         @if (selectedTable.outerLed) {
@@ -132,6 +133,7 @@
             [tableNumber]="selectedTable.tableNumber"
             destination="outer"
             label="Outer Surround"
+            (sequenceSaved)="onSequenceSaved()"
           />
         }
       </div>

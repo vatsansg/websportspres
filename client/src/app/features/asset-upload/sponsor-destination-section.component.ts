@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, Input, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   SponsorAdDestination,
@@ -45,6 +45,11 @@ export class SponsorDestinationSectionComponent implements OnInit {
   // add/delete that happened here) not yet persisted via Save Sequence - the parent reads
   // this to decide whether to warn before navigating away.
   readonly dirty = signal(false);
+
+  // Lets the parent clear its own, unrelated upload-rejection messages when the user
+  // takes this explicit "I'm done with this destination" action - otherwise a stale
+  // error from an earlier rejected upload has no other trigger to clear it.
+  @Output() sequenceSaved = new EventEmitter<void>();
 
   constructor(private sponsorAds: SponsorAdsService) {}
 
@@ -154,6 +159,7 @@ export class SponsorDestinationSectionComponent implements OnInit {
         this.files().map((f) => ({ filename: f.filename, duration: f.duration }))
       );
       this.saved.set(true);
+      this.sequenceSaved.emit();
       // Safe to reload here: everything currently in files() was just persisted, so
       // there's no unsaved local state left to lose.
       await this.reload();
