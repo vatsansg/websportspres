@@ -203,7 +203,11 @@ export async function listRealFiles({ year, eventId, eventName, folderPath }) {
   for await (const blob of containerClient.listBlobsFlat({ prefix })) {
     const relativePath = blob.name.slice(prefix.length);
     const filename = relativePath.split("/").pop();
-    if (SCAFFOLD_FILENAMES.has(filename) || filename === CHANGELOG_TEMPLATE_NAME) continue;
+    // _GUID.json (Step 7, Section 25.6) is app-generated metadata, same treatment as
+    // the change log - it moves with everything else on a rename and was never
+    // something a user manually uploaded, so it shouldn't count toward "you'll lose
+    // files" warnings either.
+    if (SCAFFOLD_FILENAMES.has(filename) || filename === CHANGELOG_TEMPLATE_NAME || filename === "_GUID.json") continue;
     if ((filename === "default.png" || filename === "default.mp4") && (blob.properties.contentLength ?? 0) === 0) {
       continue;
     }
@@ -255,4 +259,18 @@ export async function renameEventStorage({
   }
 
   return { eventStorageUrl: `${targetContainer.url}/${encodeURIComponent(newFolder)}` };
+}
+
+/**
+ * Step 7 (Web BRD Section 25.6): writes/overwrites `_GUID.json` in the event's own
+ * storage folder root - the same JSON content as the local download the user gets
+ * (Section 25.3's "local download and the _GUID.json copy... must always contain
+ * identical content"). This is the file the downstream Desktop app reads directly from
+ * Azure Storage to validate the event's identity before downloading anything.
+ */
+export async function writeExportGuidFile({ year, eventId, eventName, content }) {
+  const containerClient = getContainerClient(String(year));
+  const eventFolder = buildEventFolderName(eventId, eventName);
+  const buffer = Buffer.from(JSON.stringify(content, null, 2), "utf8");
+  await uploadBuffer(containerClient, `${eventFolder}/_GUID.json`, buffer, "application/json");
 }

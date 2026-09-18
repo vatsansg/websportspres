@@ -243,13 +243,20 @@ User feedback after reviewing the first pass, verbatim intent: (1) the Asset Rul
 - **Includes:** Event list (Active-status filter), Upload Assets shortcut, Export Event action (stubbed - Step 7's scope), Log tab (stubbed - Step 9's scope).
 
 ## Step 7 — Export Functionality
-- **Status:** Not started
+- **Status:** In progress (deployed to `dev`, backend live-verified this session; frontend not visually re-verified due to a recurring browser-automation tooling issue — see below. Pending the user's own testing pass, same as Step 5/6.)
 - **Includes:** JSON export, ExportGUID generation, `_GUID.json`.
 - **Completed on:**
-- **What was built:**
-- **QA Test Case doc:**
-- **Security Checklist:**
-- **Deviations from plan (if any):**
+- **What was built, 2026-09-18:**
+  - **Kickoff research**: the real field-level spec lives in Web BRD Sections 25.1/25.3–25.6, not a separate numbered "Export" section (the Implementation Sequence doc's own summary paraphrases it slightly differently, e.g. `_EventID_GUID.json` vs. the BRD's actual fixed `_GUID.json` filename — followed the literal BRD text, read directly from the PDF via `pdftotext`, as authoritative). Also found and used the desktop app's own BRD (`references/0forimplementation/desktop/`) for cross-reference context on how the downstream Desktop application actually consumes `_GUID.json` and the exported config, confirming this isn't a one-off web-only feature.
+  - **No new DB migration needed**: `events.export_guid CHAR(36) NULL` already existed in the base `002_create_events.sql` table definition on both `assetmgmt` and `assetmgmt_dev` (apparently added proactively during Step 1/2's original schema work, anticipating this exact field) — confirmed live via `SHOW COLUMNS` before writing a redundant migration.
+  - **Backend (`server/src/events/routes.js`)**: `POST /api/events/:eventId/export` (SuperAdmin/Administrator only, rate-limited). Generates a new `crypto.randomUUID()` GUID every call (overwriting the previous one, Section 25.5), persists it to `events.export_guid` *before* attempting the storage write (so a storage failure can't leave the DB and storage silently disagreeing forever - surfaced as a 500 telling the caller to retry instead), then writes the exact same JSON (Section 25.4's literal field list/casing: `eventId`/`eventName`/`eventStorageUrl`/`tables[]`/`exportedByUsername`/`exportedByRole`/`exportTimestamp`/`exportGuid`) both back to the client and into the event's storage folder as `_GUID.json` (`server/src/storage/eventFolders.js`'s new `writeExportGuidFile()`).
+  - **Fixed a real gap found while implementing**: `_GUID.json` needed adding to `listRealFiles()`'s scaffolding-exclusion list (same treatment as the change log) so it doesn't falsely trigger Step 5's "you'll lose real files" rename confirmation - an event that's been exported would otherwise always show a spurious warning on every subsequent rename.
+  - **Frontend (`features/dashboard/`)**: the previously-disabled "Export Event" stub is now real - `@if (canExport)` (hides the button entirely for a Normal User, per Section 25.1's literal "must not be presented" wording, not just `[disabled]`) triggers the export, downloads the JSON client-side as `{EventID}_{EventName}_assetconfig.json` (Section 25.3's exact naming convention, via a `Blob`/temporary `<a download>` - no new dependency), and opens a small modal showing the new GUID with a Copy-to-clipboard button (Implementation Sequence 7.2's "must be displayed... user must be able to copy the GUID for verification purposes").
+  - **Deployed and verified live on the `dev` slot** via `curl` against the disposable Step 5 test event `9502`: exact Section 25.4 field shape confirmed; the local-download JSON and the storage `_GUID.json` copy verified byte-for-byte identical; exporting twice confirmed a genuinely new/different GUID each time, with both the DB column and the storage file always reflecting only the latest value (never both old and new); 401/404 edge cases confirmed.
+  - **Not verified this session**: the frontend UI (download trigger, GUID modal, Copy button, and the button's hidden-for-Normal-User behavior) - Claude in Chrome hit the same recurring `Can't interact with browser-internal or unparseable URLs` tooling issue already documented once before in this project (Step 4's workflow.md notes), across four fresh-tab retries. Rather than keep retrying past the point of being productive, verification switched to `curl` + direct DB/storage inspection for the backend (thorough) and code review + a successful `ng build` for the frontend (not a substitute for actually seeing it work). Flagged clearly in the QA doc as the first thing to check in the user's own pass. Also not tested live: the Administrator/SuperAdmin-only role gate's *rejected* (403/hidden-button) side, since no Normal User test credentials are available this session - same recurring limitation already logged for Step 5's User Management testing.
+- **QA Test Case doc:** `docs/QA_Web_Step7_ExportFunctionality.md` (9 cases: 8 Pass, 1 Not Run)
+- **Security Checklist:** `docs/Security_Web_Step7_ExportFunctionality.md`
+- **Deviations from plan (if any):** none from the BRD itself - the Implementation Sequence doc's own paraphrase of the filename convention (`_EventID_GUID.json`) was not followed since the actual BRD text (Section 25.6) is unambiguous about the fixed filename `_GUID.json`; noted here since it could look like a deviation from the Implementation Sequence summary if that were read in isolation.
 
 ## Step 8 — Sponsor Ad Duration Backend Capability
 - **Status:** Not started
@@ -292,8 +299,8 @@ User feedback after reviewing the first pass, verbatim intent: (1) the Asset Rul
 | 2 | Complete | 2026-09-17 | `a0d2ee1` (merged and pushed to `origin/main`) |
 | 3 | Complete | 2026-09-17 | `29f702d` (merged and pushed to `origin/main`) |
 | 4 | Complete | 2026-09-17 | `294bb4c` (committed directly to `main`, pushed to `origin/main`) |
-| 5 | In progress (deployed to `dev`, live-verified this session; pending user's own test pass) | | |
+| 5 | In progress (committed, pending push and the user's own test pass) | | `13f63f7` (committed directly to `main` — **push to `origin/main` blocked by Claude Code's own safety layer, same as Step 1; user needs to `git push origin main` themselves**) |
 | 6 | In progress (tracked under Step 5) | | |
-| 7 | Not started | | |
+| 7 | In progress (deployed to `dev`, backend live-verified; frontend not yet, pending user's own test pass) | | |
 | 8 | Not started | | |
 | 9 | Not started | | |

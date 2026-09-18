@@ -35,20 +35,57 @@
             <a class="wtt-cta wtt-cta--secondary wtt-cta--small" [routerLink]="['/events', event.eventId, 'edit']">
               Configure
             </a>
-            <button
-              class="wtt-cta wtt-cta--secondary wtt-cta--small"
-              type="button"
-              [disabled]="!canExport"
-              title="Export Event is implemented in Step 7"
-            >
-              Export Event
-            </button>
+            @if (canExport) {
+              <button
+                class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                type="button"
+                (click)="exportEvent(event)"
+                [disabled]="exportingEventId() === event.eventId"
+              >
+                @if (exportingEventId() === event.eventId) {
+                  <span class="wtt-spinner" aria-hidden="true"></span>
+                }
+                Export Event
+              </button>
+            }
             <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" disabled title="Log is implemented in Step 9">
               Log
             </button>
           </div>
         </div>
       }
+    </div>
+  }
+
+  @if (exportError()) {
+    <p class="wtt-error" role="alert">{{ exportError() }}</p>
+  }
+
+  @if (exportResult(); as result) {
+    <div class="wtt-modal-backdrop">
+      <div class="wtt-modal wtt-export-modal">
+        <div class="wtt-modal__header">
+          <h2>Event Exported</h2>
+          <button class="wtt-modal__close" type="button" aria-label="Close" (click)="closeExportResult()">&times;</button>
+        </div>
+        <p class="wtt-success" role="status">
+          Event {{ result.eventId }} — {{ result.eventName }} was exported and downloaded as
+          <strong>{{ result.eventId }}_{{ result.eventName }}_assetconfig.json</strong>. The same content was
+          also written to the event's storage folder as <strong>_GUID.json</strong>.
+        </p>
+        <div class="wtt-field">
+          <label>Export GUID</label>
+          <div class="wtt-guid-row">
+            <span class="wtt-guid-value">{{ result.exportGuid }}</span>
+            <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="copyGuid()">
+              {{ guidCopied() ? 'Copied!' : 'Copy' }}
+            </button>
+          </div>
+        </div>
+        <div class="wtt-actions">
+          <button class="wtt-cta" type="button" (click)="closeExportResult()">Close</button>
+        </div>
+      </div>
     </div>
   }
 </div>

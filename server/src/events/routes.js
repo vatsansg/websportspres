@@ -1,8 +1,10 @@
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import { query, withTransaction } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
+import { requireRole } from "../auth/requireRole.js";
 import {
   createEventStorageStructure,
   deleteEventStorageStructure,
@@ -12,6 +14,7 @@ import {
   disableTableDestination,
   listRealFiles,
   renameEventStorage,
+  writeExportGuidFile,
   buildEventFolderName,
   LED_FOLDER_NAMES,
 } from "../storage/eventFolders.js";
@@ -45,6 +48,18 @@ const eventEditLimiter = rateLimit({
 });
 
 const DESTINATIONS = ["inner", "outer", "main"];
+
+// Step 7: Export Event (Web BRD Section 25.3) is role-gated (SuperAdmin/Administrator
+// only) but still rate-limited like every other mutating events route, same shape/reason
+// as eventEditLimiter above.
+const eventExportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many exports recently. Please try again later." },
+});
 
 // Blob paths are built directly from event_id/event_name (see storage/eventFolders.js's
 // buildEventFolderName), so a "/" here would silently create nested "folders" instead of
@@ -616,5 +631,83 @@ eventsRouter.put(
         "Event was updated in the database, but applying the change to storage failed partway through. Please check the event's storage folder and contact an administrator.";
       throw err;
     }
+  }
+);
+
+// Web BRD Section 25.3-25.6: Export Event. SuperAdmin/Administrator only (Section 2.1) -
+// the Normal User must never see this action at all (enforced here server-side; the
+// frontend also hides the button entirely for a Normal User, not just disables it, per
+// Section 25.1's literal "must not be presented" wording). Generates a new ExportGUID
+// every time (overwriting any previous value, Section 25.5), writes the same JSON both
+// back to the client (for the local download) and into the event's own storage folder as
+// `_GUID.json` (Section 25.6) - the file the downstream Desktop app reads directly from
+// Azure Storage to validate the event before downloading anything.
+eventsRouter.post(
+  "/:eventId/export",
+  requireSession,
+  requireRole("SuperAdmin", "Administrator"),
+  eventExportLimiter,
+  async (req, res) => {
+    const eventRows = await query(
+      "SELECT event_id, event_name, year, status FROM events WHERE event_id = ?",
+      [req.params.eventId]
+    );
+    if (eventRows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    const event = eventRows[0];
+
+    const tableRows = await query(
+      "SELECT table_number, inner_led, outer_led, main_led FROM event_tables WHERE event_id = ? ORDER BY table_number",
+      [event.event_id]
+    );
+
+    const exportGuid = randomUUID();
+    const containerClient = getContainerClient(String(event.year));
+    const eventStorageUrl = `${containerClient.url}/${encodeURIComponent(
+      buildEventFolderName(event.event_id, event.event_name)
+    )}`;
+
+    // Web BRD Section 25.4's exact field list - a downstream (non-JS) consumer parses
+    // this literally, so the field names here are not stylistic choices to "fix" into
+    // this codebase's usual camelCase-from-snake_case convention; they already are what
+    // the spec requires.
+    const exportContent = {
+      eventId: event.event_id,
+      eventName: event.event_name,
+      eventStorageUrl,
+      tables: tableRows.map((t) => ({
+        tableNumber: t.table_number,
+        innerLed: !!t.inner_led,
+        outerLed: !!t.outer_led,
+        mainLed: !!t.main_led,
+      })),
+      exportedByUsername: req.user.username,
+      exportedByRole: req.user.role,
+      exportTimestamp: new Date().toISOString(),
+      exportGuid,
+    };
+
+    // Section 25.5: persisted before the storage write, so a storage failure still
+    // leaves the DB holding the same GUID that would be in a retried export - no window
+    // where the two could disagree if the client retries after a transient failure.
+    await query("UPDATE events SET export_guid = ? WHERE event_id = ?", [exportGuid, event.event_id]);
+
+    try {
+      await writeExportGuidFile({
+        year: event.year,
+        eventId: event.event_id,
+        eventName: event.event_name,
+        content: exportContent,
+      });
+    } catch (err) {
+      console.error(`Failed to write _GUID.json for event "${event.event_id}":`, err);
+      err.status = 500;
+      err.message =
+        "The export GUID was recorded, but writing _GUID.json to storage failed. Please try exporting again.";
+      throw err;
+    }
+
+    res.json(exportContent);
   }
 );

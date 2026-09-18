@@ -74,6 +74,19 @@ export class ConfirmationRequiredError extends Error {
   }
 }
 
+// Web BRD Section 25.4's exact field list/casing - this is parsed by a downstream,
+// non-Angular consumer, so these names are the spec, not a stylistic choice.
+export interface ExportEventResponse {
+  eventId: string;
+  eventName: string;
+  eventStorageUrl: string;
+  tables: TableConfig[];
+  exportedByUsername: string;
+  exportedByRole: string;
+  exportTimestamp: string;
+  exportGuid: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EventsService {
   constructor(private http: HttpClient) {}
@@ -105,5 +118,14 @@ export class EventsService {
       }
       throw err;
     }
+  }
+
+  // Web BRD Section 25.3: generates a new ExportGUID, writes _GUID.json to the event's
+  // storage folder server-side, and returns the same content for the caller to trigger a
+  // local download from.
+  async exportEvent(eventId: string): Promise<ExportEventResponse> {
+    return firstValueFrom(
+      this.http.post<ExportEventResponse>(`/api/events/${encodeURIComponent(eventId)}/export`, {})
+    );
   }
 }
