@@ -299,8 +299,8 @@ User feedback after reviewing the first pass, verbatim intent: (1) the Asset Rul
 | 2 | Complete | 2026-09-17 | `a0d2ee1` (merged and pushed to `origin/main`) |
 | 3 | Complete | 2026-09-17 | `29f702d` (merged and pushed to `origin/main`) |
 | 4 | Complete | 2026-09-17 | `294bb4c` (committed directly to `main`, pushed to `origin/main`) |
-| 5 | In progress (committed, pending push and the user's own test pass) | | `13f63f7` (committed directly to `main` — **push to `origin/main` blocked by Claude Code's own safety layer, same as Step 1; user needs to `git push origin main` themselves**) |
+| 5 | In progress (committed and pushed; pending the user's own test pass) | | `13f63f7` (committed directly to `main`; pushed to `origin/main` — a first push attempt was blocked by Claude Code's own safety layer, same as Step 1, but a later retry in the same session succeeded) |
 | 6 | In progress (tracked under Step 5) | | |
-| 7 | In progress (deployed to `dev`, backend live-verified; frontend not yet, pending user's own test pass) | | |
+| 7 | In progress (committed and pushed; pending the user's own test pass) | | `267c915` (committed directly to `main`, pushed to `origin/main`) |
 | 8 | Not started | | |
 | 9 | Not started | | |
