@@ -3,14 +3,17 @@
 // original kickoff research (which only searched the Desktop app codebase and the
 // templates blob container, not this references/ subtree) and caught by the independent
 // architect review, which found this module derived from BRD prose and the real JSON file
-// disagreed on one filename (Main LED Home Look's image, see below). This module is now
-// reconciled to match that JSON file's actual content, not just the BRD's prose. Kept as a
-// repo-local module (not fetched from blob storage) since BRD Section 18 does say this file
-// "must be stored in the ... Azure Storage Account" - a real, undocumented deviation
-// (contrary to what an earlier version of this comment claimed) - flagged in workflow.md
-// for the user to confirm, since it's a static config the deploy process controls rather
-// than something staff edit at runtime, and moving it to blob storage is easy to do later
-// if the user wants that.
+// disagreed on one filename (Main LED Home Look's image, see below). Reconciled to match
+// that JSON file's actual content, not just the BRD's prose.
+//
+// Step 5: this module is now the SEED/DEFAULT data only, not the live source of truth at
+// runtime. The real Edit/Save feature (Admin/Super Admin, per the user's explicit request)
+// needs somewhere persistent to write changes to, and BRD Section 18 already requires this
+// file to live in the Storage Account's templates container - so the live config now lives
+// there (server/src/ovrTriggers/templatesStore.js), seeded from these exact constants the
+// first time the server finds no blob there yet. Every runtime consumer (routes, RPI,
+// asset-rules) reads via templatesStore.js, never this module directly - this module exists
+// so the seed data lives in version control, not just in a mutable blob.
 //
 // destinations: which LED types this asset type applies to. "inner"/"outer" always travel
 // together here (every OVR trigger except All Sponsor Logo and RPI also offers Main LED -

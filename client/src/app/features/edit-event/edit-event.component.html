@@ -1,0 +1,141 @@
+<div class="wtt-edit-page">
+  <div class="wtt-card wtt-edit-card">
+    @if (loading()) {
+      <p class="wtt-field-hint">Loading event...</p>
+    } @else if (saved()) {
+      <h1>Event Updated</h1>
+      <p class="wtt-success" role="status">
+        Event <strong>{{ eventId }}</strong> — {{ eventName }} ({{ year }}) has been saved.
+      </p>
+      <div class="wtt-actions">
+        <button class="wtt-cta" type="button" (click)="goToDashboard()">Go to Dashboard</button>
+      </div>
+    } @else {
+      <h1>Configure Event</h1>
+      <p class="wtt-subtitle">Editing event {{ currentEventId }}.</p>
+
+      <form (ngSubmit)="submit()" #f="ngForm" novalidate>
+        <div class="wtt-field">
+          <label for="eventId">Event ID</label>
+          <input
+            id="eventId"
+            name="eventId"
+            [(ngModel)]="eventId"
+            required
+            maxlength="20"
+            inputmode="numeric"
+            pattern="[0-9]+"
+          />
+          <span class="wtt-field-hint">Numeric only. Must remain unique across all events.</span>
+        </div>
+
+        <div class="wtt-field">
+          <label for="eventName">Event Name</label>
+          <input id="eventName" name="eventName" [(ngModel)]="eventName" required maxlength="255" />
+          <span class="wtt-field-hint">Must not contain "WTT".</span>
+        </div>
+
+        <div class="wtt-field">
+          <label for="year">Year</label>
+          <input id="year" name="year" type="number" [(ngModel)]="year" required min="2000" max="2100" />
+          <span class="wtt-field-hint">Changing the year moves the event's storage folder.</span>
+        </div>
+
+        <div class="wtt-tables">
+          <div class="wtt-tables-header">
+            <h2>Tables</h2>
+            <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="addTable()">
+              + Add Table
+            </button>
+          </div>
+
+          @for (table of tables; track table.tableNumber) {
+            <div class="wtt-table-row">
+              <div class="wtt-table-row__title">
+                Table {{ table.tableNumber }}
+                @if (table.tableNumber !== 1) {
+                  <button
+                    class="wtt-remove-table"
+                    type="button"
+                    aria-label="Remove table"
+                    (click)="removeTable(table.tableNumber)"
+                  >
+                    &times;
+                  </button>
+                }
+              </div>
+              <div class="wtt-led-checks">
+                <label class="wtt-checkbox">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="table.innerLed"
+                    [name]="'inner-' + table.tableNumber"
+                    (change)="onInnerToggle(table)"
+                  />
+                  Inner LED
+                </label>
+                <label class="wtt-checkbox" [class.wtt-checkbox--disabled]="!table.innerLed">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="table.outerLed"
+                    [name]="'outer-' + table.tableNumber"
+                    [disabled]="!table.innerLed"
+                  />
+                  Outer LED
+                </label>
+                <label class="wtt-checkbox">
+                  <input type="checkbox" [(ngModel)]="table.mainLed" [name]="'main-' + table.tableNumber" />
+                  Main LED
+                </label>
+              </div>
+              @if (table.innerLed && !table.outerLed) {
+                <span class="wtt-field-hint">Outer LED requires Inner LED to also be selected.</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (error()) {
+          <p class="wtt-error" role="alert">{{ error() }}</p>
+        }
+
+        <div class="wtt-actions">
+          <button class="wtt-cta" type="submit" [disabled]="saving() || f.invalid">
+            @if (saving()) {
+              <span class="wtt-spinner" aria-hidden="true"></span>
+            }
+            Save Changes
+          </button>
+          <button class="wtt-cta wtt-cta--secondary" type="button" (click)="goToDashboard()">Cancel</button>
+        </div>
+      </form>
+    }
+  </div>
+
+  @if (confirmations(); as items) {
+    <div class="wtt-modal-backdrop">
+      <div class="wtt-modal wtt-confirm-modal">
+        <div class="wtt-modal__header">
+          <h2>Confirm Destructive Changes</h2>
+        </div>
+        <div class="wtt-modal__body">
+          <p>The following changes will permanently remove files. Do you want to continue?</p>
+          <ul class="wtt-confirm-list">
+            @for (item of items; track $index) {
+              <li>{{ item.message }}</li>
+            }
+          </ul>
+        </div>
+        <div class="wtt-actions">
+          <button class="wtt-cta" type="button" (click)="confirmAndSave()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="wtt-spinner" aria-hidden="true"></span>
+            }
+            Yes, Apply Changes
+          </button>
+          <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancelConfirmation()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

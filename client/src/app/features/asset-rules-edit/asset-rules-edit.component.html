@@ -1,0 +1,194 @@
+<div class="wtt-rules-edit">
+  <h1>Asset Management Settings</h1>
+  <p class="wtt-subtitle">
+    Edit the OVR Trigger types and All Sponsor Logo rule that drive every OVR Trigger
+    upload's naming/resolution validation across the app. Changes take effect immediately
+    for new uploads. Fields marked <span class="wtt-required-mark">*</span> are required.
+  </p>
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading configuration...</p>
+  } @else {
+    @if (error()) {
+      <p class="wtt-error" role="alert">{{ error() }}</p>
+    }
+    @if (saved()) {
+      <p class="wtt-success" role="status">Configuration saved.</p>
+    }
+
+    <div class="wtt-rules-section-header">
+      <h2>OVR Trigger Types</h2>
+      <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="addTriggerType()">
+        + Add Trigger Type
+      </button>
+    </div>
+
+    @for (trigger of triggerTypes; track $index) {
+      <div class="wtt-trigger-card">
+        <div class="wtt-trigger-card__header">
+          <span class="wtt-trigger-index">Trigger Type {{ $index + 1 }}</span>
+          <button
+            class="wtt-remove-btn"
+            type="button"
+            aria-label="Remove trigger type"
+            (click)="removeTriggerType($index)"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="wtt-form-row">
+          <div class="wtt-field">
+            <label>ID <span class="wtt-required-mark">*</span></label>
+            <input [(ngModel)]="trigger.id" [name]="'id-' + $index" placeholder="e.g. time_out" />
+          </div>
+          <div class="wtt-field">
+            <label>Label <span class="wtt-required-mark">*</span></label>
+            <input [(ngModel)]="trigger.label" [name]="'label-' + $index" placeholder="e.g. Time Out" />
+          </div>
+        </div>
+
+        <div class="wtt-field">
+          <label>Destinations <span class="wtt-required-mark">*</span></label>
+          <div class="wtt-led-checks">
+            @for (d of destinations; track d) {
+              <label class="wtt-checkbox">
+                <input type="checkbox" [(ngModel)]="trigger.destinations[d]" [name]="'dest-' + d + '-' + $index" />
+                {{ d }}
+              </label>
+            }
+          </div>
+        </div>
+
+        <label class="wtt-checkbox wtt-optional-checkbox">
+          <input type="checkbox" [(ngModel)]="trigger.optional" [name]="'optional-' + $index" />
+          Optional trigger <span class="wtt-optional-mark">(optional key)</span>
+        </label>
+
+        <div class="wtt-files-header">
+          <span>File Rules <span class="wtt-required-mark">*</span></span>
+          <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="addFileRule(trigger)">
+            + Add File Rule
+          </button>
+        </div>
+
+        @for (file of trigger.files; track $index) {
+          <div class="wtt-file-rule">
+            <div class="wtt-file-rule__header">
+              <span>File {{ $index + 1 }}</span>
+              @if (trigger.files.length > 1) {
+                <button
+                  class="wtt-remove-btn"
+                  type="button"
+                  aria-label="Remove file rule"
+                  (click)="removeFileRule(trigger, $index)"
+                >
+                  &times;
+                </button>
+              }
+            </div>
+            <div class="wtt-form-row">
+              <div class="wtt-field">
+                <label>Kind <span class="wtt-required-mark">*</span></label>
+                <select [(ngModel)]="file.kind" [name]="'kind-' + $index">
+                  <option value="image">image</option>
+                  <option value="video">video</option>
+                </select>
+              </div>
+              <div class="wtt-field">
+                <label>Filename Rule <span class="wtt-required-mark">*</span></label>
+                <select [(ngModel)]="file.filenameRule" [name]="'filenameRule-' + $index">
+                  <option value="exact">exact</option>
+                  <option value="contains">contains</option>
+                  <option value="any">any</option>
+                </select>
+              </div>
+            </div>
+            <div class="wtt-form-row">
+              <div class="wtt-field">
+                <label>
+                  Required Filename
+                  @if (file.filenameRule !== 'any') {
+                    <span class="wtt-required-mark">*</span>
+                  } @else {
+                    <span class="wtt-optional-mark">(not used for "any")</span>
+                  }
+                </label>
+                <input
+                  [(ngModel)]="file.requiredFilename"
+                  [name]="'requiredFilename-' + $index"
+                  [disabled]="file.filenameRule === 'any'"
+                />
+              </div>
+              <div class="wtt-field">
+                <label>Storage Filename <span class="wtt-required-mark">*</span></label>
+                <input [(ngModel)]="file.storageFilename" [name]="'storageFilename-' + $index" />
+              </div>
+            </div>
+            <div class="wtt-form-row">
+              <div class="wtt-field">
+                <label>Additional Copy <span class="wtt-optional-mark">(optional)</span></label>
+                <input [(ngModel)]="file.additionalCopy" [name]="'additionalCopy-' + $index" />
+              </div>
+              <div class="wtt-field">
+                <label>Fallback From <span class="wtt-optional-mark">(optional)</span></label>
+                <input [(ngModel)]="file.fallbackFrom" [name]="'fallbackFrom-' + $index" />
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="wtt-rules-section-header">
+      <h2>All Sponsor Logo</h2>
+    </div>
+    <div class="wtt-trigger-card">
+      <div class="wtt-form-row">
+        <div class="wtt-field">
+          <label>Label <span class="wtt-required-mark">*</span></label>
+          <input [(ngModel)]="allSponsorLogo.label" name="logo-label" />
+        </div>
+        <div class="wtt-field">
+          <label>Filename Rule <span class="wtt-required-mark">*</span></label>
+          <select [(ngModel)]="allSponsorLogo.filenameRule" name="logo-filenameRule">
+            <option value="exact">exact</option>
+            <option value="contains">contains</option>
+            <option value="any">any</option>
+          </select>
+        </div>
+      </div>
+      <div class="wtt-field">
+        <label>Destinations <span class="wtt-required-mark">*</span></label>
+        <div class="wtt-led-checks">
+          @for (d of destinations; track d) {
+            <label class="wtt-checkbox">
+              <input type="checkbox" [(ngModel)]="allSponsorLogo.destinations[d]" [name]="'logo-dest-' + d" />
+              {{ d }}
+            </label>
+          }
+        </div>
+      </div>
+      <div class="wtt-form-row">
+        <div class="wtt-field">
+          <label>Required Filename <span class="wtt-required-mark">*</span></label>
+          <input [(ngModel)]="allSponsorLogo.requiredFilename" name="logo-requiredFilename" />
+        </div>
+        <div class="wtt-field">
+          <label>Storage Filename <span class="wtt-required-mark">*</span></label>
+          <input [(ngModel)]="allSponsorLogo.storageFilename" name="logo-storageFilename" />
+        </div>
+      </div>
+    </div>
+
+    <div class="wtt-actions">
+      <button class="wtt-cta" type="button" (click)="save()" [disabled]="saving()">
+        @if (saving()) {
+          <span class="wtt-spinner" aria-hidden="true"></span>
+        }
+        Save
+      </button>
+      <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancel()">Cancel</button>
+    </div>
+  }
+</div>

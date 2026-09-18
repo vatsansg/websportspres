@@ -1,15 +1,17 @@
 import { Router } from "express";
 import { requireSession } from "../auth/session.js";
+import { requireRole } from "../auth/requireRole.js";
 import { config } from "../config/env.js";
-import { OVR_TRIGGER_TYPES, ALL_SPONSOR_LOGO } from "../ovrTriggers/templateConfig.js";
+import { getOvrTriggerTypes, getAllSponsorLogo, getRawConfig, saveTemplatesConfig } from "../ovrTriggers/templatesStore.js";
 import { RPI_RESOLUTION } from "../ovrTriggers/rpiRoutes.js";
 import { IMAGE_SPEC, FORBIDDEN_FILENAME_TERMS } from "../media/sponsorAdValidation.js";
 
 // View-only reference for the "Asset Management Settings" popup (Web BRD's asset-naming/
-// validation rules, in one place) - single-sourced from the same constants the actual
-// validation code runs against, so this can never drift out of sync with real behavior.
-// Available to every authenticated role; Step 5 is expected to add Edit/Save here,
-// restricted to Admin/SuperAdmin, per the user's explicit request.
+// validation rules, in one place) - single-sourced from the same live config every
+// validation route actually reads (server/src/ovrTriggers/templatesStore.js, Web BRD
+// Section 18's blob-storage-backed config), so this can never drift out of sync with
+// real behavior. GET is available to every authenticated role; Step 5's Edit/Save
+// (/raw below) is restricted to Admin/SuperAdmin, per the user's explicit request.
 export const assetRulesRouter = Router();
 
 assetRulesRouter.use(requireSession);
@@ -28,7 +30,7 @@ assetRulesRouter.get("/", (req, res) => {
         mainLedDefault: { width: 3840, height: 2160 },
       },
     },
-    ovrTriggers: OVR_TRIGGER_TYPES.map((trigger) => ({
+    ovrTriggers: getOvrTriggerTypes().map((trigger) => ({
       id: trigger.id,
       label: trigger.label,
       destinations: trigger.destinations,
@@ -42,12 +44,15 @@ assetRulesRouter.get("/", (req, res) => {
         fallbackFrom: f.fallbackFrom ?? null,
       })),
     })),
-    allSponsorLogo: {
-      label: ALL_SPONSOR_LOGO.label,
-      destinations: ALL_SPONSOR_LOGO.destinations,
-      requiredFilename: ALL_SPONSOR_LOGO.requiredFilename,
-      storageFilename: ALL_SPONSOR_LOGO.storageFilename,
-    },
+    allSponsorLogo: (() => {
+      const allSponsorLogo = getAllSponsorLogo();
+      return {
+        label: allSponsorLogo.label,
+        destinations: allSponsorLogo.destinations,
+        requiredFilename: allSponsorLogo.requiredFilename,
+        storageFilename: allSponsorLogo.storageFilename,
+      };
+    })(),
     rpi: {
       label: "RPI Home Look",
       destinations: ["rpi"],
@@ -63,4 +68,25 @@ assetRulesRouter.get("/", (req, res) => {
       storageFilenames: { image: "default.png", video: "default.mp4" },
     },
   });
+});
+
+// Step 5: the raw, editable config (ovrTriggerTypes + allSponsorLogo, exactly as stored
+// in the templates container) - the curated view above is a read-only summary shaped
+// for the popup and isn't a faithful round-trip of the underlying JSON, so editing needs
+// its own pair of endpoints rather than reusing GET "/". Admin/SuperAdmin only (Security
+// Checklist: this configuration drives every OVR Trigger validation rule in the app).
+assetRulesRouter.get("/raw", requireRole("SuperAdmin", "Administrator"), (req, res) => {
+  res.json(getRawConfig());
+});
+
+assetRulesRouter.put("/raw", requireRole("SuperAdmin", "Administrator"), async (req, res) => {
+  try {
+    const saved = await saveTemplatesConfig(req.body);
+    res.json(saved);
+  } catch (err) {
+    if (err.status === 400) {
+      return res.status(400).json({ error: err.message, details: err.details });
+    }
+    throw err;
+  }
 });

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -28,6 +28,7 @@ export interface EventSummary {
   eventName: string;
   year: number;
   status: 'Active' | 'Archive';
+  tables: TableConfig[];
 }
 
 export interface EventTable extends TableConfig {
@@ -47,6 +48,32 @@ export interface EventDetail {
   tables: EventTable[];
 }
 
+export interface EditEventRequest {
+  eventId: string;
+  eventName: string;
+  year: number;
+  tables: TableConfig[];
+  confirmed?: boolean;
+}
+
+export interface EditConfirmation {
+  type: 'rename' | 'table-delete' | 'destination-disable';
+  tableNumber?: number;
+  destination?: 'inner' | 'outer' | 'main';
+  message: string;
+  fileCount: number;
+}
+
+// Thrown by updateEvent() when the server responds 409 with a list of destructive
+// changes the caller must show the user before resubmitting with `confirmed: true`
+// (Web BRD Section 8 - "if files already exist ... the user must receive a confirmation
+// prompt").
+export class ConfirmationRequiredError extends Error {
+  constructor(public confirmations: EditConfirmation[]) {
+    super('Confirmation required');
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class EventsService {
   constructor(private http: HttpClient) {}
@@ -61,5 +88,22 @@ export class EventsService {
 
   async getEvent(eventId: string): Promise<EventDetail> {
     return firstValueFrom(this.http.get<EventDetail>(`/api/events/${encodeURIComponent(eventId)}`));
+  }
+
+  // Web BRD Section 8/9: combined edit endpoint. Currently-known event ID is the URL
+  // param (`currentEventId`); the body's own `eventId` carries the *new* ID, which may
+  // be unchanged. Throws ConfirmationRequiredError on a 409 "confirmation required"
+  // response rather than a generic HttpErrorResponse, so callers can branch cleanly.
+  async updateEvent(currentEventId: string, request: EditEventRequest): Promise<CreateEventResponse> {
+    try {
+      return await firstValueFrom(
+        this.http.put<CreateEventResponse>(`/api/events/${encodeURIComponent(currentEventId)}`, request)
+      );
+    } catch (err) {
+      if (err instanceof HttpErrorResponse && err.status === 409 && err.error?.confirmations) {
+        throw new ConfirmationRequiredError(err.error.confirmations as EditConfirmation[]);
+      }
+      throw err;
+    }
   }
 }

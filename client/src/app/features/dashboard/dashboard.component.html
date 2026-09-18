@@ -1,0 +1,54 @@
+<div class="wtt-dashboard">
+  <div class="wtt-dashboard-header">
+    <div>
+      <h1>Events</h1>
+      <p class="wtt-subtitle">Active events, most recently created first.</p>
+    </div>
+    <a class="wtt-cta" routerLink="/create-event">+ Create Event</a>
+  </div>
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading events...</p>
+  } @else if (error()) {
+    <p class="wtt-error" role="alert">{{ error() }}</p>
+  } @else if (events().length === 0) {
+    <div class="wtt-card wtt-empty-card">
+      <p>No active events yet.</p>
+      <a class="wtt-cta" routerLink="/create-event">Create your first event</a>
+    </div>
+  } @else {
+    <div class="wtt-event-list">
+      @for (event of events(); track event.eventId) {
+        <div class="wtt-card wtt-event-row">
+          <div class="wtt-event-row__main">
+            <div class="wtt-event-row__title">
+              <span class="wtt-event-id">{{ event.eventId }}</span>
+              <h2>{{ event.eventName }}</h2>
+              <span class="wtt-tag">{{ event.year }}</span>
+            </div>
+            <p class="wtt-event-row__tables">{{ ledSummary(event) }}</p>
+          </div>
+          <div class="wtt-event-row__actions">
+            <button class="wtt-cta wtt-cta--small" type="button" (click)="uploadAssets(event.eventId)">
+              Upload Assets
+            </button>
+            <a class="wtt-cta wtt-cta--secondary wtt-cta--small" [routerLink]="['/events', event.eventId, 'edit']">
+              Configure
+            </a>
+            <button
+              class="wtt-cta wtt-cta--secondary wtt-cta--small"
+              type="button"
+              [disabled]="!canExport"
+              title="Export Event is implemented in Step 7"
+            >
+              Export Event
+            </button>
+            <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" disabled title="Log is implemented in Step 9">
+              Log
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

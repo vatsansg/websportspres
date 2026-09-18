@@ -5,6 +5,7 @@ import express from "express";
 import { createApp } from "./app.js";
 import { config } from "./config/env.js";
 import { seedSuperAdmin } from "./auth/seed.js";
+import { loadTemplatesConfig } from "./ovrTriggers/templatesStore.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +17,15 @@ async function main() {
     await seedSuperAdmin();
   } catch (err) {
     console.error("Super Admin seed failed at startup (continuing without it):", err.message);
+  }
+
+  // Same reasoning as seedSuperAdmin above - a Storage outage shouldn't block the whole
+  // app from starting. OVR Trigger routes will throw a clear error on-demand if this
+  // never succeeds, rather than the process refusing to boot at all.
+  try {
+    await loadTemplatesConfig();
+  } catch (err) {
+    console.error("Loading asset_management_templates.json failed at startup (continuing without it):", err.message);
   }
 
   const app = createApp();

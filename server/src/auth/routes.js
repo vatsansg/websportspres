@@ -110,6 +110,15 @@ authRouter.post(
 // Exchanges a validated Azure AD access token (obtained client-side by Angular/MSAL, PKCE,
 // no client secret involved) for our own session cookie. See azureAdAuth.js for why this
 // cannot be exercised end-to-end until AZURE_AD_TENANT_ID/CLIENT_ID are configured.
+//
+// Step 5, User Management (2026-09-18): the token only proves who the person is - it no
+// longer carries the role. Authorization is now "does a row for this person already exist
+// in our own `users` table, provisioned via the User Management screen" - if not, sign-in
+// is refused rather than silently creating a NormalUser row, since that would let anyone
+// in the tenant self-provision access just by signing in. Matched first by
+// azure_ad_object_id (the stable identifier), falling back to username/email for the
+// first login after an admin pre-provisions someone by email alone - that first login
+// backfills the object id so every subsequent one matches directly.
 authRouter.post("/aad/session", async (req, res) => {
   const authHeader = req.headers.authorization ?? "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
@@ -117,14 +126,31 @@ authRouter.post("/aad/session", async (req, res) => {
 
   try {
     const claims = await verifyAzureAdToken(token);
-    await query(
-      `INSERT INTO users (username, role, auth_provider, azure_ad_object_id, display_name, last_login_at)
-       VALUES (?, ?, 'azuread', ?, ?, NOW())
-       ON DUPLICATE KEY UPDATE role = VALUES(role), display_name = VALUES(display_name), last_login_at = NOW()`,
-      [claims.username, claims.role, claims.azureAdObjectId, claims.displayName]
+
+    let rows = await query(
+      "SELECT * FROM users WHERE azure_ad_object_id = ? AND auth_provider = 'azuread'",
+      [claims.azureAdObjectId]
     );
-    issueSessionCookie(res, { username: claims.username, role: claims.role, provider: "azuread" });
-    res.json({ username: claims.username, role: claims.role });
+    if (rows.length === 0) {
+      rows = await query(
+        "SELECT * FROM users WHERE username = ? AND auth_provider = 'azuread' AND azure_ad_object_id IS NULL",
+        [claims.username]
+      );
+    }
+    if (rows.length === 0) {
+      logAuthFailure("aad_login_not_provisioned", { username: claims.username });
+      return res.status(403).json({
+        error: "Your account has not been set up for access to this application. Contact an administrator.",
+      });
+    }
+
+    const user = rows[0];
+    await query(
+      "UPDATE users SET azure_ad_object_id = ?, display_name = ?, last_login_at = NOW() WHERE id = ?",
+      [claims.azureAdObjectId, claims.displayName, user.id]
+    );
+    issueSessionCookie(res, { username: user.username, role: user.role, provider: "azuread" });
+    res.json({ username: user.username, role: user.role });
   } catch (err) {
     res.status(401).json({ error: err.message });
   }

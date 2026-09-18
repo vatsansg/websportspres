@@ -1,12 +1,15 @@
-// Step 5: no longer a full-viewport page - this renders inside app-shell's
-// <router-outlet>, which already provides the header/sidebar/background chrome.
-.wtt-page {
+// Duplicated from create-event.component.scss rather than shared, since Angular view
+// encapsulation scopes component styles per-component (a class only styled in a
+// *different* component's stylesheet silently gets no styling at all - see workflow.md
+// Step 4's writeup of exactly this bug). Kept in sync manually; low risk since this
+// table-editor markup rarely changes.
+.wtt-edit-page {
   display: flex;
   align-items: flex-start;
   justify-content: center;
 }
 
-.wtt-create-card {
+.wtt-edit-card {
   width: 100%;
   max-width: 560px;
 }
@@ -15,17 +18,6 @@
   opacity: 0.6;
   font-size: 0.85rem;
   margin: 0 0 1.75rem;
-}
-
-.wtt-storage-url {
-  background: #111;
-  border: 1px solid var(--wtt-border);
-  border-radius: var(--wtt-radius-sm);
-  color: var(--wtt-teal);
-  font-family: monospace;
-  font-size: 0.8rem;
-  padding: 0.7rem 0.85rem;
-  word-break: break-all;
 }
 
 .wtt-tables {
@@ -125,4 +117,35 @@
 .wtt-cta--secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
+}
+
+// Confirmation modal - same tokens as asset-rules-modal.component.scss.
+.wtt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--wtt-space-4);
+}
+
+.wtt-modal {
+  background: var(--wtt-surface-raised);
+  border: 1px solid var(--wtt-orange);
+  border-radius: var(--wtt-radius-sm);
+  max-width: 560px;
+  width: 100%;
+  padding: var(--wtt-space-5);
+}
+
+.wtt-modal__header h2 {
+  margin: 0 0 var(--wtt-space-2);
+}
+
+.wtt-confirm-list {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  padding-left: 1.2rem;
 }

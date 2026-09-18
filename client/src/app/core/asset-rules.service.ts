@@ -52,4 +52,14 @@ export class AssetRulesService {
   async getRules(): Promise<AssetRules> {
     return firstValueFrom(this.http.get<AssetRules>("/api/asset-rules"));
   }
+
+  // Step 5: the raw, editable config (Admin/SuperAdmin only) - not the curated summary
+  // above, which isn't a faithful round-trip of the underlying JSON.
+  async getRawConfig(): Promise<unknown> {
+    return firstValueFrom(this.http.get("/api/asset-rules/raw"));
+  }
+
+  async saveRawConfig(config: unknown): Promise<unknown> {
+    return firstValueFrom(this.http.put("/api/asset-rules/raw", config));
+  }
 }

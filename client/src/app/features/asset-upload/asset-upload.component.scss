@@ -1,10 +1,9 @@
+// Step 5: no longer a full-viewport page - this renders inside app-shell's
+// <router-outlet>, which already provides the header/sidebar/background chrome.
 .wtt-page {
-  min-height: 100vh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 2.5rem 1.5rem;
-  background: radial-gradient(circle at 50% 0%, #141414 0%, #000 65%);
 }
 
 .wtt-upload-card {

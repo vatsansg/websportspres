@@ -3,7 +3,7 @@ import multer from "multer";
 import { query } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
 import { config } from "../config/env.js";
-import { findOvrTriggerType } from "./templateConfig.js";
+import { findOvrTriggerType } from "./templatesStore.js";
 import { validateOvrTriggerFilename, validateOvrTriggerMedia } from "../media/ovrTriggerValidation.js";
 import { isBlobSafeFilename } from "../media/sponsorAdValidation.js";
 import {

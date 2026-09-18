@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, HostListener, OnInit, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { EventDetail, EventSummary, EventsService } from '../../core/events.service';
 import { SponsorAdDestination, SponsorAdsService } from '../../core/sponsor-ads.service';
 import { SponsorDestinationSectionComponent } from './sponsor-destination-section.component';
@@ -54,7 +54,8 @@ export class AssetUploadComponent implements OnInit {
   constructor(
     private events_: EventsService,
     private sponsorAds: SponsorAdsService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   async ngOnInit() {
@@ -65,6 +66,13 @@ export class AssetUploadComponent implements OnInit {
       this.error.set('Could not load events.');
     } finally {
       this.loadingEvents.set(false);
+    }
+
+    // Web BRD Section 25.2: the Dashboard's "Upload Assets" shortcut pre-selects the
+    // event it was launched from, instead of landing on an empty picker.
+    const preselectedEventId = this.route.snapshot.queryParamMap.get('eventId');
+    if (preselectedEventId && this.events().some((e) => e.eventId === preselectedEventId)) {
+      await this.onEventChange(preselectedEventId);
     }
   }
 

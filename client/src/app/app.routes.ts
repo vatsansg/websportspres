@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/auth.guard';
+import { authGuard, adminGuard } from './core/auth.guard';
 
 export const routes: Routes = [
   {
@@ -19,29 +19,50 @@ export const routes: Routes = [
         (m) => m.ChangePasswordComponent
       ),
   },
-  {
-    path: 'create-event',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/create-event/create-event.component').then(
-        (m) => m.CreateEventComponent
-      ),
-  },
-  {
-    path: 'asset-upload',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/asset-upload/asset-upload.component').then(
-        (m) => m.AssetUploadComponent
-      ),
-  },
+  // Step 5: every other authenticated route now renders inside the real app shell
+  // (header + left nav + <router-outlet>) instead of being a bare standalone page - see
+  // app-shell.component.
   {
     path: '',
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/dashboard-shell/dashboard-shell.component').then(
-        (m) => m.DashboardShellComponent
-      ),
+    loadComponent: () => import('./features/app-shell/app-shell.component').then((m) => m.AppShellComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+      },
+      {
+        path: 'create-event',
+        loadComponent: () =>
+          import('./features/create-event/create-event.component').then((m) => m.CreateEventComponent),
+      },
+      {
+        path: 'events/:eventId/edit',
+        loadComponent: () =>
+          import('./features/edit-event/edit-event.component').then((m) => m.EditEventComponent),
+      },
+      {
+        path: 'asset-upload',
+        loadComponent: () =>
+          import('./features/asset-upload/asset-upload.component').then((m) => m.AssetUploadComponent),
+      },
+      {
+        path: 'asset-rules',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/asset-rules-edit/asset-rules-edit.component').then(
+            (m) => m.AssetRulesEditComponent
+          ),
+      },
+      {
+        path: 'users',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/user-management/user-management.component').then(
+            (m) => m.UserManagementComponent
+          ),
+      },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

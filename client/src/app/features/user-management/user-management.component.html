@@ -1,0 +1,148 @@
+<div class="wtt-users-page">
+  <h1>User Management</h1>
+  <p class="wtt-subtitle">
+    Administrator and Normal User accounts sign in with their WTT Azure AD account, but
+    someone has to add them here first before they can access this application.
+  </p>
+
+  <div class="wtt-card wtt-add-card">
+    <h2>Add User</h2>
+    <div class="wtt-field">
+      <label>Search {{ 'worldtabletennis.com' }} directory</label>
+      <input
+        type="text"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="onSearchInput($event)"
+        placeholder="Type a name or email..."
+        autocomplete="off"
+      />
+      @if (searching()) {
+        <span class="wtt-field-hint">Searching...</span>
+      }
+      @if (searchError()) {
+        <span class="wtt-field-hint wtt-field-hint--warn">{{ searchError() }}</span>
+      }
+      @if (candidates().length > 0) {
+        <ul class="wtt-candidate-list">
+          @for (c of candidates(); track c.azureAdObjectId) {
+            <li>
+              <button type="button" (click)="pickCandidate(c)">
+                <strong>{{ c.displayName }}</strong>
+                <span>{{ c.email }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+      @if (selectedCandidate) {
+        <span class="wtt-tag">Selected: {{ selectedCandidate.displayName }} ({{ selectedCandidate.email }})</span>
+      }
+    </div>
+
+    @if (!selectedCandidate) {
+      <div class="wtt-field">
+        <label>Or type their exact email <span class="wtt-optional-mark">(if search doesn't find them)</span></label>
+        <input type="email" [(ngModel)]="manualEmail" placeholder="name@worldtabletennis.com" />
+      </div>
+    }
+
+    <div class="wtt-field">
+      <label>Role</label>
+      <select [(ngModel)]="newUserRole">
+        @for (r of assignableRoles; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </div>
+
+    @if (addError()) {
+      <p class="wtt-error" role="alert">{{ addError() }}</p>
+    }
+
+    <button class="wtt-cta" type="button" (click)="addUser()" [disabled]="adding()">
+      @if (adding()) {
+        <span class="wtt-spinner" aria-hidden="true"></span>
+      }
+      Add User
+    </button>
+  </div>
+
+  <h2 class="wtt-users-list-heading">Existing Users</h2>
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading users...</p>
+  } @else if (error()) {
+    <p class="wtt-error" role="alert">{{ error() }}</p>
+  } @else {
+    <div class="wtt-users-table-wrap">
+      <table class="wtt-users-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Provider</th>
+            <th>Added By</th>
+            <th>Last Login</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of users(); track u.id) {
+            <tr>
+              <td>
+                <div>{{ u.displayName || u.username }}</div>
+                <div class="wtt-users-email">{{ u.username }}</div>
+              </td>
+              <td>
+                @if (canManage(u)) {
+                  <select [ngModel]="u.role" (ngModelChange)="changeRole(u, $event)" [disabled]="savingId() === u.id">
+                    @for (r of assignableRoles; track r) {
+                      <option [value]="r">{{ r }}</option>
+                    }
+                  </select>
+                } @else {
+                  <span class="wtt-tag">{{ u.role }}</span>
+                }
+              </td>
+              <td>{{ u.authProvider === 'local' ? 'Local' : 'Azure AD' }}</td>
+              <td>{{ u.addedBy || '—' }}</td>
+              <td>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'medium') : 'Never' }}</td>
+              <td>
+                @if (canManage(u)) {
+                  @if (confirmingRemoveId() === u.id) {
+                    <div class="wtt-inline-confirm">
+                      <span>Remove?</span>
+                      <button
+                        class="wtt-cta wtt-cta--small wtt-cta--danger"
+                        type="button"
+                        (click)="confirmRemove(u)"
+                        [disabled]="savingId() === u.id"
+                      >
+                        Yes, Remove
+                      </button>
+                      <button
+                        class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                        type="button"
+                        (click)="cancelRemove()"
+                        [disabled]="savingId() === u.id"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      class="wtt-cta wtt-cta--secondary wtt-cta--small"
+                      type="button"
+                      (click)="requestRemove(u)"
+                    >
+                      Remove
+                    </button>
+                  }
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -3,7 +3,20 @@ import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import { query, withTransaction } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
-import { createEventStorageStructure, deleteEventStorageStructure } from "../storage/eventFolders.js";
+import {
+  createEventStorageStructure,
+  deleteEventStorageStructure,
+  createTableStorage,
+  deleteTableStorage,
+  enableTableDestination,
+  disableTableDestination,
+  listRealFiles,
+  renameEventStorage,
+  buildEventFolderName,
+  LED_FOLDER_NAMES,
+} from "../storage/eventFolders.js";
+import { getContainerClient } from "../storage/blobClient.js";
+import { appendChangeLogEntry } from "../logging/assetChangeLog.js";
 
 export const eventsRouter = Router();
 
@@ -19,6 +32,19 @@ const eventCreationLimiter = rateLimit({
   keyGenerator: (req) => req.user?.username ?? req.ip,
   message: { error: "Too many events created recently. Please try again later." },
 });
+
+// Same reasoning/shape as eventCreationLimiter above, separate bucket since editing an
+// event (Step 5) is a different action than creating one.
+const eventEditLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many event edits recently. Please try again later." },
+});
+
+const DESTINATIONS = ["inner", "outer", "main"];
 
 // Blob paths are built directly from event_id/event_name (see storage/eventFolders.js's
 // buildEventFolderName), so a "/" here would silently create nested "folders" instead of
@@ -191,16 +217,41 @@ eventsRouter.post(
   }
 );
 
-// Minimal event picker for Step 3's Asset Upload page - the full Event List (Section 25.1:
-// Upload Assets shortcut, Export Event action, Log tab, ID-descending sort) is Step 6's
-// job. Filtered to Active only, same as Section 25.1, since there's no reason to upload
-// assets against an archived event.
+// Event list - Active-status only, Event ID descending (Web BRD Section 25.1). Built for
+// Step 3's Asset Upload picker (eventId/eventName/year/status), and reused as-is for
+// Step 6's real Dashboard/Event List, which additionally needs each row's table/LED
+// summary - added here as an extra `tables` field rather than a second endpoint, since
+// it's a pure addition existing consumers already ignore.
 eventsRouter.get("/", requireSession, async (req, res) => {
   const rows = await query(
     "SELECT event_id, event_name, year, status FROM events WHERE status = 'Active' ORDER BY event_id DESC"
   );
+  if (rows.length === 0) {
+    return res.json([]);
+  }
+  const tableRows = await query(
+    `SELECT event_id, table_number, inner_led, outer_led, main_led
+     FROM event_tables WHERE event_id IN (?) ORDER BY event_id, table_number`,
+    [rows.map((r) => r.event_id)]
+  );
+  const tablesByEvent = new Map();
+  for (const t of tableRows) {
+    if (!tablesByEvent.has(t.event_id)) tablesByEvent.set(t.event_id, []);
+    tablesByEvent.get(t.event_id).push({
+      tableNumber: t.table_number,
+      innerLed: !!t.inner_led,
+      outerLed: !!t.outer_led,
+      mainLed: !!t.main_led,
+    });
+  }
   res.json(
-    rows.map((r) => ({ eventId: r.event_id, eventName: r.event_name, year: r.year, status: r.status }))
+    rows.map((r) => ({
+      eventId: r.event_id,
+      eventName: r.event_name,
+      year: r.year,
+      status: r.status,
+      tables: tablesByEvent.get(r.event_id) ?? [],
+    }))
   );
 });
 
@@ -240,3 +291,330 @@ eventsRouter.get("/:eventId", requireSession, async (req, res) => {
     })),
   });
 });
+
+// Web BRD Section 8/9: Event Modification. One combined edit endpoint, same shape as
+// creation's combined payload - Event ID/Name/Year, plus the full desired table list
+// (adds, removes, and per-table LED toggles all expressed as "here is the table list I
+// want now" rather than separate add/remove/toggle endpoints). Confirmation is gated in
+// two ways per Section 8's own text: table deletion always needs confirmation
+// (unconditional), while ID/Name/Year rename and LED-destination-disable only need it
+// "if files already exist" (conditional - checked live against storage before deciding).
+//
+// Flow: first call omits `confirmed`; if any destructive change needs confirmation and
+// the caller hasn't set `confirmed: true`, respond 409 with the list of pending
+// confirmations (and how many real files each affects) without changing anything. The
+// client shows that to the user and, on OK, resubmits the identical body with
+// `confirmed: true` - the server re-derives the same diff independently rather than
+// trusting a client-supplied list of "confirmed changes", so there's no way to slip an
+// unconfirmed destructive change through by lying about which ones were shown.
+eventsRouter.put(
+  "/:eventId",
+  requireSession,
+  eventEditLimiter,
+  body("eventId")
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 20 })
+    .matches(NUMERIC_PATTERN)
+    .withMessage("Event ID must be numeric"),
+  body("eventName")
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 255 })
+    .matches(BLOB_SAFE_PATTERN)
+    .custom((value) => !/wtt/i.test(value))
+    .withMessage("Event Name must not contain \"WTT\""),
+  body("year").isInt({ min: 2000, max: 2100 }).toInt(),
+  body("tables").isArray({ min: 1 }),
+  body("confirmed").optional().isBoolean().toBoolean(),
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: "Invalid input", details: errors.array() });
+    }
+
+    const currentEventId = req.params.eventId;
+    const newEventId = (req.body.eventId ? req.body.eventId.trim() : currentEventId);
+    const newEventName = req.body.eventName.trim();
+    const newYear = req.body.year;
+    const newTables = req.body.tables;
+    const confirmed = req.body.confirmed === true;
+
+    const tableErrors = validateTables(newTables);
+    if (tableErrors.length > 0) {
+      return res.status(400).json({ error: "Invalid table configuration", details: tableErrors });
+    }
+
+    const eventRows = await query(
+      "SELECT event_id, event_name, year, status FROM events WHERE event_id = ?",
+      [currentEventId]
+    );
+    if (eventRows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    const current = eventRows[0];
+    const oldEventId = current.event_id;
+    const oldEventName = current.event_name;
+    const oldYear = current.year;
+
+    if (newEventId !== oldEventId) {
+      const clash = await query("SELECT event_id FROM events WHERE event_id = ?", [newEventId]);
+      if (clash.length > 0) {
+        return res.status(409).json({ error: `Event ID "${newEventId}" already exists` });
+      }
+    }
+
+    const currentTableRows = await query(
+      `SELECT table_number, inner_led, outer_led, main_led,
+              inner_resolution_width, inner_resolution_height,
+              outer_resolution_width, outer_resolution_height,
+              main_resolution_width, main_resolution_height
+       FROM event_tables WHERE event_id = ? ORDER BY table_number`,
+      [currentEventId]
+    );
+    const currentTables = new Map(currentTableRows.map((t) => [t.table_number, t]));
+    const newTablesByNumber = new Map(newTables.map((t) => [t.tableNumber, t]));
+
+    const removedTableNumbers = [...currentTables.keys()].filter((n) => !newTablesByNumber.has(n));
+    const addedTables = newTables.filter((t) => !currentTables.has(t.tableNumber));
+    const changedTables = newTables
+      .filter((t) => currentTables.has(t.tableNumber))
+      .map((t) => {
+        const before = currentTables.get(t.tableNumber);
+        const enabled = (destination) =>
+          destination === "inner" ? !!before.inner_led : destination === "outer" ? !!before.outer_led : !!before.main_led;
+        const wants = (destination) =>
+          destination === "inner" ? !!t.innerLed : destination === "outer" ? !!t.outerLed : !!t.mainLed;
+        return {
+          tableNumber: t.tableNumber,
+          disabling: DESTINATIONS.filter((d) => enabled(d) && !wants(d)),
+          enabling: DESTINATIONS.filter((d) => !enabled(d) && wants(d)),
+        };
+      });
+
+    // Gather every confirmation this edit could need, and how many real files it
+    // affects, before touching anything.
+    const confirmations = [];
+
+    const identityChanged = newEventId !== oldEventId || newEventName !== oldEventName || newYear !== oldYear;
+    if (identityChanged) {
+      const files = await listRealFiles({ year: oldYear, eventId: oldEventId, eventName: oldEventName });
+      if (files.length > 0) {
+        confirmations.push({
+          type: "rename",
+          message: `Renaming/moving this event will relocate ${files.length} existing file(s) to the new event folder.`,
+          fileCount: files.length,
+        });
+      }
+    }
+
+    for (const tableNumber of removedTableNumbers) {
+      const files = await listRealFiles({
+        year: oldYear,
+        eventId: oldEventId,
+        eventName: oldEventName,
+        folderPath: `Table ${tableNumber}`,
+      });
+      // Web BRD Section 9: table deletion is confirmed unconditionally, regardless of
+      // whether it actually contains any real files.
+      confirmations.push({
+        type: "table-delete",
+        tableNumber,
+        message: `Deleting Table ${tableNumber} will permanently remove its folder and ${files.length} file(s) in it.`,
+        fileCount: files.length,
+      });
+    }
+
+    for (const change of changedTables) {
+      for (const destination of change.disabling) {
+        const files = await listRealFiles({
+          year: oldYear,
+          eventId: oldEventId,
+          eventName: oldEventName,
+          folderPath: `Table ${change.tableNumber}/${LED_FOLDER_NAMES[destination]}`,
+        });
+        if (files.length > 0) {
+          confirmations.push({
+            type: "destination-disable",
+            tableNumber: change.tableNumber,
+            destination,
+            message: `Disabling ${destination.toUpperCase()} LED on Table ${change.tableNumber} will permanently remove ${files.length} file(s).`,
+            fileCount: files.length,
+          });
+        }
+      }
+    }
+
+    if (confirmations.length > 0 && !confirmed) {
+      return res.status(409).json({ error: "Confirmation required", confirmations });
+    }
+
+    try {
+      await withTransaction(async ({ query: txQuery }) => {
+        if (newEventId !== oldEventId || newEventName !== oldEventName || newYear !== oldYear) {
+          await txQuery(
+            "UPDATE events SET event_id = ?, event_name = ?, year = ?, updated_by = ? WHERE event_id = ?",
+            [newEventId, newEventName, newYear, req.user.username, oldEventId]
+          );
+        }
+
+        for (const tableNumber of removedTableNumbers) {
+          await txQuery("DELETE FROM event_tables WHERE event_id = ? AND table_number = ?", [
+            newEventId,
+            tableNumber,
+          ]);
+        }
+
+        for (const table of addedTables) {
+          const r = resolutionFields(table);
+          await txQuery(
+            `INSERT INTO event_tables
+               (event_id, table_number, inner_led, outer_led, main_led,
+                inner_resolution_width, inner_resolution_height,
+                outer_resolution_width, outer_resolution_height,
+                main_resolution_width, main_resolution_height)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              newEventId,
+              table.tableNumber,
+              table.innerLed ? 1 : 0,
+              table.outerLed ? 1 : 0,
+              table.mainLed ? 1 : 0,
+              r.innerWidth,
+              r.innerHeight,
+              r.outerWidth,
+              r.outerHeight,
+              r.mainWidth,
+              r.mainHeight,
+            ]
+          );
+        }
+
+        for (const t of newTables) {
+          if (!currentTables.has(t.tableNumber)) continue; // handled above as an add
+          await txQuery(
+            "UPDATE event_tables SET inner_led = ?, outer_led = ?, main_led = ? WHERE event_id = ? AND table_number = ?",
+            [t.innerLed ? 1 : 0, t.outerLed ? 1 : 0, t.mainLed ? 1 : 0, newEventId, t.tableNumber]
+          );
+        }
+      });
+    } catch (err) {
+      if (err.code === "ER_DUP_ENTRY") {
+        return res.status(409).json({ error: `Event ID "${newEventId}" already exists` });
+      }
+      throw err;
+    }
+
+    // DB commit succeeded - now apply the same changes to storage. Unlike creation,
+    // there is no full symmetric rollback here if a storage step fails partway through
+    // (unwinding a partial rename/add/delete/toggle set safely is materially harder than
+    // creation's single all-or-nothing folder tree) - failures are logged loudly and
+    // surfaced to the caller as a 500 rather than silently swallowed, so the operator
+    // knows the DB and storage may be out of sync and can check `_ledassetschangelog.csv`
+    // / the storage account directly. This asymmetry is a deliberate, documented scope
+    // decision (see workflow.md Step 5), not an oversight.
+    try {
+      let effectiveYear = oldYear;
+      let effectiveEventId = oldEventId;
+      let effectiveEventName = oldEventName;
+
+      if (identityChanged) {
+        await renameEventStorage({
+          oldYear,
+          newYear,
+          oldEventId,
+          oldEventName,
+          newEventId,
+          newEventName,
+        });
+        effectiveYear = newYear;
+        effectiveEventId = newEventId;
+        effectiveEventName = newEventName;
+      }
+
+      for (const tableNumber of removedTableNumbers) {
+        const files = await listRealFiles({
+          year: effectiveYear,
+          eventId: effectiveEventId,
+          eventName: effectiveEventName,
+          folderPath: `Table ${tableNumber}`,
+        });
+        await deleteTableStorage({
+          year: effectiveYear,
+          eventId: effectiveEventId,
+          eventName: effectiveEventName,
+          tableNumber,
+        });
+        for (const filename of files) {
+          await appendChangeLogEntry({
+            year: effectiveYear,
+            eventId: effectiveEventId,
+            eventName: effectiveEventName,
+            filename,
+            status: "Deleted",
+            username: req.user.username,
+          });
+        }
+      }
+
+      for (const table of addedTables) {
+        await createTableStorage({
+          year: effectiveYear,
+          eventId: effectiveEventId,
+          eventName: effectiveEventName,
+          table,
+        });
+      }
+
+      for (const change of changedTables) {
+        for (const destination of change.enabling) {
+          await enableTableDestination({
+            year: effectiveYear,
+            eventId: effectiveEventId,
+            eventName: effectiveEventName,
+            tableNumber: change.tableNumber,
+            destination,
+          });
+        }
+        for (const destination of change.disabling) {
+          const files = await listRealFiles({
+            year: effectiveYear,
+            eventId: effectiveEventId,
+            eventName: effectiveEventName,
+            folderPath: `Table ${change.tableNumber}/${LED_FOLDER_NAMES[destination]}`,
+          });
+          await disableTableDestination({
+            year: effectiveYear,
+            eventId: effectiveEventId,
+            eventName: effectiveEventName,
+            tableNumber: change.tableNumber,
+            destination,
+          });
+          for (const filename of files) {
+            await appendChangeLogEntry({
+              year: effectiveYear,
+              eventId: effectiveEventId,
+              eventName: effectiveEventName,
+              filename,
+              status: "Deleted",
+              username: req.user.username,
+            });
+          }
+        }
+      }
+
+      const containerClient = getContainerClient(String(effectiveYear));
+      const eventStorageUrl = `${containerClient.url}/${encodeURIComponent(
+        buildEventFolderName(effectiveEventId, effectiveEventName)
+      )}`;
+      res.json({ eventId: newEventId, eventName: newEventName, year: newYear, eventStorageUrl });
+    } catch (err) {
+      console.error(`Storage sync failed while editing event "${oldEventId}" -> "${newEventId}":`, err);
+      err.status = 500;
+      err.message =
+        "Event was updated in the database, but applying the change to storage failed partway through. Please check the event's storage folder and contact an administrator.";
+      throw err;
+    }
+  }
+);

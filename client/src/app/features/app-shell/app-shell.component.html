@@ -1,0 +1,44 @@
+<div class="wtt-shell">
+  <header class="wtt-shell-header">
+    <div class="wtt-shell-brand">
+      <span class="wtt-shell-brand__square"></span>
+      <h1>WTT Asset Management</h1>
+    </div>
+    <div class="wtt-shell-user">
+      <span class="wtt-shell-username">{{ auth.currentUser()?.username }}</span>
+      <span class="wtt-tag">{{ auth.currentUser()?.role }}</span>
+      <button class="wtt-cta wtt-cta--small" (click)="logout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="wtt-shell-body">
+    <nav class="wtt-shell-nav">
+      <a routerLink="/" routerLinkActive="wtt-nav-link--active" [routerLinkActiveOptions]="{ exact: true }" class="wtt-nav-link">
+        Dashboard
+      </a>
+      <a routerLink="/create-event" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+        Create Event
+      </a>
+      <a routerLink="/asset-upload" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+        Upload Assets
+      </a>
+      @if (isAdmin) {
+        <a routerLink="/asset-rules" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+          Asset Management Settings
+        </a>
+        <a routerLink="/users" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+          User Management
+        </a>
+      }
+      @if (auth.currentUser()?.role === 'SuperAdmin') {
+        <a routerLink="/change-password" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+          Change Password
+        </a>
+      }
+    </nav>
+
+    <main class="wtt-shell-main">
+      <router-outlet />
+    </main>
+  </div>
+</div>

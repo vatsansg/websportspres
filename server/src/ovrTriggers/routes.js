@@ -3,7 +3,7 @@ import multer from "multer";
 import { query } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
 import { config } from "../config/env.js";
-import { OVR_TRIGGER_TYPES, ALL_SPONSOR_LOGO, findOvrTriggerType } from "./templateConfig.js";
+import { getOvrTriggerTypes, getAllSponsorLogo, findOvrTriggerType } from "./templatesStore.js";
 import { validateOvrTriggerFilename, validateOvrTriggerMedia } from "../media/ovrTriggerValidation.js";
 import { isBlobSafeFilename } from "../media/sponsorAdValidation.js";
 import {
@@ -145,11 +145,12 @@ function resolveAssetSlot(destination, assetKey) {
 
   if (assetKey === "all_sponsor_logo.image") {
     if (destination === "main") return null; // Web BRD Section 22: Inner/Outer only.
+    const allSponsorLogo = getAllSponsorLogo();
     return {
       kind: "image",
-      filenameRule: ALL_SPONSOR_LOGO.filenameRule,
-      requiredFilename: ALL_SPONSOR_LOGO.requiredFilename,
-      storageFilename: ALL_SPONSOR_LOGO.storageFilename,
+      filenameRule: allSponsorLogo.filenameRule,
+      requiredFilename: allSponsorLogo.requiredFilename,
+      storageFilename: allSponsorLogo.storageFilename,
       saveToBothInnerAndOuter: true,
     };
   }
@@ -173,7 +174,7 @@ ovrTriggersRouter.get("/:destination", requireValidDestination, async (req, res)
   const ctx = { ...req.eventContext, destination };
   const slots = [];
 
-  for (const triggerType of OVR_TRIGGER_TYPES) {
+  for (const triggerType of getOvrTriggerTypes()) {
     if (!triggerType.destinations.includes(destination)) continue;
     for (const fileConfig of triggerType.files) {
       const assetKey = `${triggerType.id}.${fileConfig.kind}`;
@@ -195,11 +196,12 @@ ovrTriggersRouter.get("/:destination", requireValidDestination, async (req, res)
   }
 
   if (destination !== "main") {
-    const logoStatus = await ovrTriggerFileExists(ctx, ALL_SPONSOR_LOGO.storageFilename);
+    const allSponsorLogo = getAllSponsorLogo();
+    const logoStatus = await ovrTriggerFileExists(ctx, allSponsorLogo.storageFilename);
     slots.push({
       assetKey: "all_sponsor_logo.image",
       triggerId: "all_sponsor_logo",
-      label: ALL_SPONSOR_LOGO.label,
+      label: allSponsorLogo.label,
       kind: "image",
       optional: true,
       exists: logoStatus.exists,

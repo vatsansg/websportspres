@@ -32,6 +32,14 @@ function getSigningKey(client, kid) {
   });
 }
 
+// Step 5, User Management (2026-09-18): this now only proves *identity* - who signed in,
+// verified against Azure AD's own keys. It deliberately no longer reads the token's
+// `roles` claim at all. Role/authorization is looked up in our own `users` table by the
+// caller (auth/routes.js's /aad/session), keyed off `azureAdObjectId`/`username` below -
+// see workflow.md for why: self-service user provisioning (User Management screen) needs
+// a source of truth this app can write to, and this app has no API access to manage Azure
+// AD App Role assignments in Entra ID itself. The Azure AD App Registration's
+// Administrator/NormalUser App Roles still exist but are no longer consulted here.
 export async function verifyAzureAdToken(accessToken) {
   const { tenantId, clientId } = config.auth.azureAd;
   if (!tenantId || !clientId) {
@@ -50,20 +58,9 @@ export async function verifyAzureAdToken(accessToken) {
     issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
   });
 
-  const roles = claims.roles ?? [];
-  const role = roles.includes("Administrator")
-    ? "Administrator"
-    : roles.includes("NormalUser")
-    ? "NormalUser"
-    : null;
-  if (!role) {
-    throw new Error("Token has no recognised app role (Administrator/NormalUser) assigned");
-  }
-
   return {
     azureAdObjectId: claims.oid,
     username: claims.preferred_username ?? claims.upn ?? claims.email,
     displayName: claims.name,
-    role: role === "NormalUser" ? "NormalUser" : "Administrator",
   };
 }
