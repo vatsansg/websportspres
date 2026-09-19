@@ -7,6 +7,25 @@
     <a class="wtt-cta" routerLink="/create-event">+ Create Event</a>
   </div>
 
+  @if (forceEmailSend() && pendingEmailEvents.length > 0) {
+    <div class="wtt-card wtt-email-reminder" role="alert">
+      <p>
+        <strong>Unsent Change Log Email{{ pendingEmailEvents.length > 1 ? 's' : '' }}:</strong>
+        the following event{{ pendingEmailEvents.length > 1 ? 's have' : ' has' }} asset changes that haven't
+        been emailed yet. Open the event's Asset Upload page and press Send Mail.
+      </p>
+      <ul class="wtt-email-reminder__list">
+        @for (event of pendingEmailEvents; track event.eventId) {
+          <li>
+            <button type="button" class="wtt-email-reminder__link" (click)="uploadAssets(event.eventId)">
+              {{ event.eventId }} — {{ event.eventName }}
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
   @if (!loading() && !error() && events().length > 0) {
     <div class="wtt-filter-bar">
       <label class="wtt-checkbox">
@@ -53,6 +72,9 @@
               <span class="wtt-event-id">{{ event.eventId }}</span>
               <h2>{{ event.eventName }}</h2>
               <span class="wtt-tag">{{ event.year }}</span>
+              @if (event.emailPending) {
+                <span class="wtt-tag wtt-tag--pending-email" title="Unsent Change Log Email">✉ Unsent</span>
+              }
             </div>
             <p class="wtt-event-row__tables">{{ ledSummary(event) }}</p>
           </div>
@@ -76,7 +98,7 @@
                 Export Event
               </button>
             }
-            <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" disabled title="Log is implemented in Step 9">
+            <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="viewLog(event)">
               Log
             </button>
             @if (canManageEvents) {
@@ -172,6 +194,52 @@
             </button>
           </div>
         }
+      </div>
+    </div>
+  }
+
+  @if (viewingLogEvent(); as event) {
+    <div class="wtt-modal-backdrop">
+      <div class="wtt-modal wtt-log-modal">
+        <div class="wtt-modal__header">
+          <h2>Change Log — {{ event.eventId }} — {{ event.eventName }}</h2>
+          <button class="wtt-modal__close" type="button" aria-label="Close" (click)="closeLog()">&times;</button>
+        </div>
+        @if (logLoading()) {
+          <p class="wtt-field-hint">Loading log...</p>
+        } @else if (logError()) {
+          <p class="wtt-error" role="alert">{{ logError() }}</p>
+        } @else if (logEntries().length === 0) {
+          <p class="wtt-field-hint">No asset changes have been logged for this event yet.</p>
+        } @else {
+          <div class="wtt-log-table-wrap">
+            <table class="wtt-log-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>File</th>
+                  <th>Date/Time</th>
+                  <th>Status</th>
+                  <th>User</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (entry of logEntries(); track entry.sno) {
+                  <tr>
+                    <td>{{ entry.sno }}</td>
+                    <td class="wtt-log-table__file">{{ entry.filename }}</td>
+                    <td class="wtt-log-table__nowrap">{{ formatSgt(entry.changetimestamp) }}</td>
+                    <td class="wtt-log-table__nowrap">{{ entry.status }}</td>
+                    <td>{{ entry.username }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        <div class="wtt-actions">
+          <button class="wtt-cta" type="button" (click)="closeLog()">Close</button>
+        </div>
       </div>
     </div>
   }

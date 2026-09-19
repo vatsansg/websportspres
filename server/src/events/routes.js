@@ -19,7 +19,8 @@ import {
   LED_FOLDER_NAMES,
 } from "../storage/eventFolders.js";
 import { getContainerClient } from "../storage/blobClient.js";
-import { appendChangeLogEntry } from "../logging/assetChangeLog.js";
+import { appendChangeLogEntry, readChangeLogEntries } from "../logging/assetChangeLog.js";
+import { sendChangeLogEmail } from "../logging/changeLogEmail.js";
 
 export const eventsRouter = Router();
 
@@ -253,7 +254,7 @@ eventsRouter.post(
 // user's, so two people never see each other's favorites.
 eventsRouter.get("/", requireSession, async (req, res) => {
   const rows = await query(
-    "SELECT event_id, event_name, year, status FROM events WHERE status = 'Active' ORDER BY event_id DESC"
+    "SELECT event_id, event_name, year, status, email_pending FROM events WHERE status = 'Active' ORDER BY event_id DESC"
   );
   if (rows.length === 0) {
     return res.json([]);
@@ -285,6 +286,7 @@ eventsRouter.get("/", requireSession, async (req, res) => {
       status: r.status,
       tables: tablesByEvent.get(r.event_id) ?? [],
       isFavorite: favoriteIds.has(r.event_id),
+      emailPending: !!r.email_pending,
     }))
   );
 });
@@ -303,6 +305,18 @@ const favoriteLimiter = rateLimit({
 });
 
 const MAX_FAVORITES_PER_USER = 3;
+
+// User-requested (2026-09-19, see workflow.md): manual "Send Mail" action, available to
+// every role (whoever made the change is the one who should be able to send notice of
+// it) - same shape as favoriteLimiter above.
+const sendMailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many Change Log Email sends recently. Please try again later." },
+});
 
 eventsRouter.post("/:eventId/favorite", requireSession, favoriteLimiter, async (req, res) => {
   const eventRows = await query("SELECT event_id FROM events WHERE event_id = ?", [req.params.eventId]);
@@ -348,7 +362,7 @@ eventsRouter.delete("/:eventId/favorite", requireSession, favoriteLimiter, async
 
 eventsRouter.get("/:eventId", requireSession, async (req, res) => {
   const eventRows = await query(
-    "SELECT event_id, event_name, year, status FROM events WHERE event_id = ?",
+    "SELECT event_id, event_name, year, status, email_pending FROM events WHERE event_id = ?",
     [req.params.eventId]
   );
   if (eventRows.length === 0) {
@@ -368,6 +382,7 @@ eventsRouter.get("/:eventId", requireSession, async (req, res) => {
     eventName: event.event_name,
     year: event.year,
     status: event.status,
+    emailPending: !!event.email_pending,
     tables: tableRows.map((t) => ({
       tableNumber: t.table_number,
       innerLed: !!t.inner_led,
@@ -820,3 +835,100 @@ eventsRouter.patch(
     res.json({ eventId: req.params.eventId, status: "Archive" });
   }
 );
+
+// Step 9 (Web BRD Section 30): Event Log Tab. Read-only view of the same change-log data
+// Section 24/29 already write - "does not introduce a separate storage location or data
+// source" (Section 30's own text). Open to every signed-in role (no requireRole gate):
+// unlike Export/Archive this isn't a destructive or list-level action, it's a per-event
+// audit trail, and a Normal User who can open an event to upload assets has an equally
+// legitimate reason to see what changed on it. Sorted newest-first per Section 30.
+eventsRouter.get("/:eventId/log", requireSession, async (req, res) => {
+  const eventRows = await query(
+    "SELECT event_id, event_name, year FROM events WHERE event_id = ?",
+    [req.params.eventId]
+  );
+  if (eventRows.length === 0) {
+    return res.status(404).json({ error: "Event not found" });
+  }
+  const event = eventRows[0];
+
+  const entries = await readChangeLogEntries({
+    year: event.year,
+    eventId: event.event_id,
+    eventName: event.event_name,
+  });
+  entries.sort((a, b) => b.changetimestamp.localeCompare(a.changetimestamp));
+
+  res.json({ entries });
+});
+
+const SEND_MAIL_SCOPES = ["session", "24h", "all"];
+
+// User feedback (2026-09-19, see workflow.md), second round: the first version of this
+// route filtered `scope` on top of an "unsent since the last send" watermark
+// (`email_last_sent_sno`) - in testing this meant every scope quietly collapsed to the
+// same small set (whatever hadn't been marked sent yet), which looked like "scope isn't
+// filtering, it always sends only the current session's changes." Simplified per the
+// user's explicit correction: each scope now filters the event's *entire* change-log
+// history directly (no watermark), and *any* successful send - whichever scope - clears
+// `email_pending`. `email_last_sent_sno` was dropped entirely (migration
+// 011_drop_email_last_sent_sno.sql) rather than left as dead, confusing state.
+// - "session": only entries logged since the caller's own login (JWT `iat`).
+// - "24h": only entries logged in the last 24 hours.
+// - "all" (default): every entry ever logged for this event, no time filter.
+//
+// Third round of user feedback: `email_pending` used to also *gate* sending ("no changes
+// to send" once cleared), which silently blocked every option after the first successful
+// send in a session - a "recap" send (e.g. "All changes" a second time) was expected to
+// always work as long as the event has any logged history at all, not just once.
+// `email_pending` is now purely a UI hint (the Dashboard/Send Mail button's red
+// indicator, set by appendChangeLogEntry() on a new change, cleared here after a send) -
+// it never blocks the send action itself; only an empty `toSend` (nothing in the chosen
+// scope, or no history at all) does that.
+eventsRouter.post("/:eventId/send-change-log-email", requireSession, sendMailLimiter, async (req, res) => {
+  const scope = SEND_MAIL_SCOPES.includes(req.body?.scope) ? req.body.scope : "all";
+
+  const eventRows = await query("SELECT event_id, event_name, year FROM events WHERE event_id = ?", [
+    req.params.eventId,
+  ]);
+  if (eventRows.length === 0) {
+    return res.status(404).json({ error: "Event not found" });
+  }
+  const event = eventRows[0];
+
+  const entries = await readChangeLogEntries({
+    year: event.year,
+    eventId: event.event_id,
+    eventName: event.event_name,
+  });
+
+  let cutoffMs = null;
+  if (scope === "session") {
+    cutoffMs = req.user.iat * 1000;
+  } else if (scope === "24h") {
+    cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
+  }
+  const toSend = cutoffMs === null ? entries : entries.filter((e) => new Date(e.changetimestamp).getTime() >= cutoffMs);
+
+  if (toSend.length === 0) {
+    return res.json({ sent: false, message: "No changes to send for the selected time range." });
+  }
+
+  // Web BRD Section 29 field list has no explicit ordering; user-requested (2026-09-19):
+  // newest first, matching the Event Log Tab's own sort (Web BRD Section 30).
+  toSend.sort((a, b) => b.changetimestamp.localeCompare(a.changetimestamp));
+
+  try {
+    await sendChangeLogEmail({ eventId: event.event_id, eventName: event.event_name, entries: toSend });
+  } catch (err) {
+    console.error(`Failed to send Change Log Email for event "${event.event_id}":`, err);
+    err.status = 502;
+    err.message = "Could not send the Change Log Email. Please try again.";
+    throw err;
+  }
+
+  // User-requested (2026-09-19): resets regardless of which scope was actually sent.
+  await query("UPDATE events SET email_pending = FALSE WHERE event_id = ?", [event.event_id]);
+
+  res.json({ sent: true, entriesSent: toSend.length, scope });
+});

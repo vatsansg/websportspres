@@ -47,6 +47,96 @@
   box-shadow: none;
 }
 
+// User-requested (2026-09-19): the "Send Mail" button turns red/danger-colored whenever
+// this event has change-log entries that haven't been emailed yet - same token as the
+// Dashboard's Archive button (dashboard.component.scss), duplicated here since Angular's
+// per-component style encapsulation already means every wtt-cta variant in this file is
+// a local copy, not a shared one.
+.wtt-cta--danger {
+  background: var(--wtt-error);
+  color: var(--wtt-white);
+}
+
+.wtt-cta--danger:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(255, 82, 82, 0.35);
+}
+
+// The unsent-changes exit-warning modal (shown by the CanDeactivate guard when "Force
+// Email Send" is on) reuses the same modal tokens as the Dashboard's Archive/Log modals.
+.wtt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--wtt-space-4);
+}
+
+.wtt-modal {
+  background: var(--wtt-surface-raised);
+  border: 1px solid var(--wtt-orange);
+  border-radius: var(--wtt-radius-sm);
+  max-width: 560px;
+  width: 100%;
+  padding: var(--wtt-space-5);
+}
+
+.wtt-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--wtt-space-2);
+}
+
+.wtt-modal__header h2 {
+  margin: 0;
+}
+
+.wtt-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: var(--wtt-space-4);
+  flex-wrap: wrap;
+}
+
+// User feedback (2026-09-19): the Send Mail scope picker's radio options.
+.wtt-send-mail-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wtt-space-2);
+  margin: var(--wtt-space-3) 0;
+}
+
+.wtt-radio-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--wtt-space-3);
+  cursor: pointer;
+  padding: var(--wtt-space-3);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+}
+
+.wtt-radio-row input[type='radio'] {
+  width: 16px;
+  height: 16px;
+  margin-top: 0.2rem;
+  accent-color: var(--wtt-orange);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.wtt-radio-row strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.wtt-radio-row .wtt-field-hint {
+  margin: 0;
+}
+
 .wtt-subtitle {
   opacity: 0.6;
   font-size: 0.85rem;
@@ -174,6 +264,64 @@
   height: 16px;
   accent-color: var(--wtt-orange);
   cursor: pointer;
+}
+
+// User-requested (2026-09-19): search + Favorites-only filter row above the Event picker.
+.wtt-event-picker-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-4);
+  margin-bottom: var(--wtt-space-2);
+  flex-wrap: wrap;
+}
+
+.wtt-event-picker-controls input[type='text'] {
+  flex: 1;
+  min-width: 220px;
+}
+
+// User feedback (2026-09-19): a plain search box narrowing a separate native <select>
+// wasn't visibly doing anything until the select was opened by hand - rebuilt as a real
+// combobox, same list pattern as User Management's directory search.
+.wtt-candidate-list {
+  list-style: none;
+  margin: 0 0 var(--wtt-space-4);
+  padding: 0;
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--wtt-surface-raised);
+}
+
+.wtt-candidate-list li button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wtt-space-3);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--wtt-border);
+  color: var(--wtt-white);
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--wtt-font-body);
+}
+
+.wtt-candidate-list li:last-child button {
+  border-bottom: none;
+}
+
+.wtt-candidate-list li button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.wtt-candidate-list li button span {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .wtt-dropzone {

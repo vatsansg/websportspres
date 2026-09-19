@@ -1,0 +1,44 @@
+<div class="wtt-settings-page">
+  <h1>System Settings</h1>
+  <p class="wtt-subtitle">Global behavior for this application, applying to every event and every user.</p>
+
+  @if (loading()) {
+    <p class="wtt-field-hint">Loading settings...</p>
+  } @else {
+    <div class="wtt-card wtt-settings-card">
+      <h2>Change Log Email</h2>
+      <label class="wtt-checkbox-row">
+        <input type="checkbox" [(ngModel)]="forceEmailSend" name="forceEmailSend" />
+        <span>
+          <strong>Force Email Send</strong>
+          <p class="wtt-field-hint">
+            When enabled, a user with unsent asset/sponsor-sequence/OVR-trigger changes on an event is warned
+            before leaving that event's Asset Upload page without pressing Send Mail, and is reminded again at
+            their next login until they do. When disabled, Send Mail is still available on the Asset Upload page,
+            but pressing it is optional - no warnings or reminders are shown.
+          </p>
+        </span>
+      </label>
+
+      @if (error()) {
+        <p class="wtt-error" role="alert">{{ error() }}</p>
+      }
+      @if (success()) {
+        <p class="wtt-success" role="status">System Settings saved.</p>
+      }
+
+      <div class="wtt-actions">
+        <button class="wtt-cta" type="button" (click)="save()" [disabled]="saving() || !isDirty">
+          @if (saving()) {
+            <span class="wtt-spinner" aria-hidden="true"></span>
+          }
+          Save
+        </button>
+        <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancel()" [disabled]="saving() || !isDirty">
+          Cancel
+        </button>
+        <button class="wtt-cta wtt-cta--secondary" type="button" (click)="back()">&larr; Back to Dashboard</button>
+      </div>
+    </div>
+  }
+</div>

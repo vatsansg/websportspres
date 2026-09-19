@@ -11,6 +11,7 @@ import { ovrTriggersRouter } from "./ovrTriggers/routes.js";
 import { rpiRouter } from "./ovrTriggers/rpiRoutes.js";
 import { assetRulesRouter } from "./assetRules/routes.js";
 import { usersRouter } from "./users/routes.js";
+import { settingsRouter } from "./settings/routes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 export function createApp() {
@@ -61,6 +62,7 @@ export function createApp() {
   app.use("/api/events/:eventId/ovr-triggers/rpi", rpiRouter);
   app.use("/api/asset-rules", assetRulesRouter);
   app.use("/api/users", usersRouter);
+  app.use("/api/system-settings", settingsRouter);
 
   app.use(errorHandler);
   return app;

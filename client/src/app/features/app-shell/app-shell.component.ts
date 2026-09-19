@@ -23,8 +23,16 @@ export class AppShellComponent {
     return role === 'SuperAdmin' || role === 'Administrator';
   }
 
+  // User-requested (2026-09-19, see workflow.md): navigates first, then clears the
+  // session only if navigation actually succeeded - navigateByUrl() runs the Asset
+  // Upload page's CanDeactivate guard (unsent-email.guard.ts) before resolving, so a user
+  // with unsent changes still gets the chance to send/confirm from Sign Out, not just
+  // from "Back to Dashboard". The previous order (clear session, then navigate) would
+  // have logged the user out before that guard even asked.
   async logout() {
-    await this.auth.logout();
-    this.router.navigateByUrl('/login');
+    const navigated = await this.router.navigateByUrl('/login');
+    if (navigated) {
+      await this.auth.logout();
+    }
   }
 }

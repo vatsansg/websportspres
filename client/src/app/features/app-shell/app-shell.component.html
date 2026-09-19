@@ -29,6 +29,9 @@
         <a routerLink="/users" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
           User Management
         </a>
+        <a routerLink="/system-settings" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">
+          System Settings
+        </a>
       }
       @if (auth.currentUser()?.role === 'SuperAdmin') {
         <a routerLink="/change-password" routerLinkActive="wtt-nav-link--active" class="wtt-nav-link">

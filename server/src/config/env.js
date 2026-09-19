@@ -38,6 +38,20 @@ export const config = {
   },
 
   maxVideoUploadMb: Number(process.env.MAX_VIDEO_UPLOAD_MB ?? 100),
-  changeLogEmailRecipient:
-    process.env.CHANGE_LOG_EMAIL_RECIPIENT ?? "wtt-naiteam@worldtabletennis.com",
+
+  // Step 9 (Web BRD Section 29). `recipients` is comma-separated in the App Service
+  // setting (BRD: "should be configurable through application settings rather than
+  // hard-coded") - supporting more than one address is a deliberate, requested extension
+  // beyond the BRD's single literal address, not a deviation from it (the real recipient
+  // is still included). `connectionString` is intentionally NOT run through required() -
+  // a missing value degrades to "email sending skipped, logged" rather than crashing the
+  // whole app at startup, same posture as every other optional-at-boot integration here.
+  email: {
+    connectionString: process.env.ACS_EMAIL_CONNECTION_STRING ?? null,
+    senderAddress: process.env.CHANGE_LOG_EMAIL_SENDER ?? null,
+    recipients: (process.env.CHANGE_LOG_EMAIL_RECIPIENT ?? "wtt-naiteam@worldtabletennis.com")
+      .split(",")
+      .map((r) => r.trim())
+      .filter(Boolean),
+  },
 };

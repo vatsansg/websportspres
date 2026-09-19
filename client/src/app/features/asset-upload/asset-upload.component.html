@@ -13,14 +13,127 @@
         >
           Asset Rules
         </button>
+        <button
+          class="wtt-cta wtt-cta--secondary wtt-cta--small"
+          [class.wtt-cta--danger]="selectedEventSummary?.emailPending"
+          type="button"
+          [disabled]="!selectedEventId() || sendingMail()"
+          [title]="selectedEventSummary?.emailPending ? 'This event has unsent asset changes' : 'No unsent changes for this event'"
+          (click)="openSendMailOptions()"
+        >
+          @if (sendingMail()) {
+            <span class="wtt-spinner" aria-hidden="true"></span>
+          }
+          Send Mail
+        </button>
         <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" (click)="goToDashboard()">
           &larr; Back to Dashboard
         </button>
       </div>
     </div>
 
+    @if (sendMailError() && !showEmailPendingPrompt()) {
+      <p class="wtt-error" role="alert">{{ sendMailError() }}</p>
+    }
+
     @if (rulesModalOpen()) {
       <app-asset-rules-modal (closed)="rulesModalOpen.set(false)" />
+    }
+
+    @if (showSendMailOptions()) {
+      <div class="wtt-modal-backdrop">
+        <div class="wtt-modal">
+          <div class="wtt-modal__header">
+            <h2>Send Change Log Email</h2>
+          </div>
+          <p>Choose what to include for <strong>{{ selectedEventSummary?.eventId }} — {{ selectedEventSummary?.eventName }}</strong>:</p>
+          <div class="wtt-send-mail-options">
+            <label class="wtt-radio-row">
+              <input type="radio" name="sendMailScope" value="session" [(ngModel)]="selectedSendMailScope" />
+              <span>
+                <strong>Changes in this session</strong>
+                <p class="wtt-field-hint">Everything logged since you signed in.</p>
+              </span>
+            </label>
+            <label class="wtt-radio-row">
+              <input type="radio" name="sendMailScope" value="24h" [(ngModel)]="selectedSendMailScope" />
+              <span>
+                <strong>Changes in the last 24 hours</strong>
+                <p class="wtt-field-hint">Includes this session.</p>
+              </span>
+            </label>
+            <label class="wtt-radio-row">
+              <input type="radio" name="sendMailScope" value="all" [(ngModel)]="selectedSendMailScope" />
+              <span>
+                <strong>All changes for this event</strong>
+                <p class="wtt-field-hint">The full change log, no time filter.</p>
+              </span>
+            </label>
+          </div>
+          <p class="wtt-field-hint">Sending any of these clears the "unsent" indicator for this event.</p>
+          @if (sendMailError()) {
+            <p class="wtt-error" role="alert">{{ sendMailError() }}</p>
+          }
+          <div class="wtt-actions">
+            <button class="wtt-cta" type="button" (click)="confirmSendMailOptions()" [disabled]="sendingMail()">
+              @if (sendingMail()) {
+                <span class="wtt-spinner" aria-hidden="true"></span>
+              }
+              Send
+            </button>
+            <button
+              class="wtt-cta wtt-cta--secondary"
+              type="button"
+              (click)="cancelSendMailOptions()"
+              [disabled]="sendingMail()"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (showEmailPendingPrompt()) {
+      <div class="wtt-modal-backdrop">
+        <div class="wtt-modal">
+          <div class="wtt-modal__header">
+            <h2>Unsent Change Log Email</h2>
+          </div>
+          <p>
+            <strong>{{ selectedEventSummary?.eventId }} — {{ selectedEventSummary?.eventName }}</strong>
+            has asset/sponsor-sequence/OVR-trigger changes that haven't been emailed yet. Send the Change Log
+            Email now before leaving?
+          </p>
+          @if (sendMailError()) {
+            <p class="wtt-error" role="alert">{{ sendMailError() }}</p>
+          }
+          <div class="wtt-actions">
+            <button class="wtt-cta" type="button" (click)="resolveDeactivate('send')" [disabled]="sendingMail()">
+              @if (sendingMail()) {
+                <span class="wtt-spinner" aria-hidden="true"></span>
+              }
+              Send Mail Now
+            </button>
+            <button
+              class="wtt-cta wtt-cta--secondary"
+              type="button"
+              (click)="resolveDeactivate('leave')"
+              [disabled]="sendingMail()"
+            >
+              Leave Without Sending
+            </button>
+            <button
+              class="wtt-cta wtt-cta--secondary"
+              type="button"
+              (click)="resolveDeactivate('cancel')"
+              [disabled]="sendingMail()"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     }
 
     <div class="wtt-tabs">
@@ -38,20 +151,43 @@
     </div>
 
     <div class="wtt-field">
-      <label for="eventSelect">Event</label>
+      <label for="eventSearch">Event</label>
       @if (loadingEvents()) {
         <p class="wtt-field-hint">Loading events...</p>
       } @else {
-        <select
-          id="eventSelect"
-          [ngModel]="selectedEventId()"
-          (ngModelChange)="onEventChange($event)"
-        >
-          <option value="">Select an event...</option>
-          @for (event of events(); track event.eventId) {
-            <option [value]="event.eventId">{{ event.eventId }} - {{ event.eventName }}</option>
+        <div class="wtt-event-picker-controls">
+          <input
+            id="eventSearch"
+            type="text"
+            [ngModel]="eventSearchQuery()"
+            (ngModelChange)="onEventSearchInput($event)"
+            (focus)="openEventList()"
+            placeholder="Search by Event ID or name..."
+            autocomplete="off"
+          />
+          <label class="wtt-checkbox">
+            <input type="checkbox" [checked]="favoritesOnly()" (change)="favoritesOnly.set(!favoritesOnly())" />
+            Favorites only
+          </label>
+        </div>
+        @if (eventListOpen()) {
+          @if (filteredEvents.length > 0) {
+            <ul class="wtt-candidate-list">
+              @for (event of filteredEvents; track event.eventId) {
+                <li>
+                  <button type="button" (click)="pickEvent(event)">
+                    <strong>{{ event.eventId }} - {{ event.eventName }}</strong>
+                    @if (event.isFavorite) {
+                      <span>★ Favorite</span>
+                    }
+                  </button>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="wtt-field-hint">No matching events.</p>
           }
-        </select>
+        }
       }
     </div>
 

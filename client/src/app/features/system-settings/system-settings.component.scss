@@ -1,0 +1,61 @@
+.wtt-settings-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wtt-subtitle {
+  opacity: 0.7;
+  margin: 0 0 var(--wtt-space-6);
+}
+
+.wtt-settings-card h2 {
+  font-size: 1.05rem;
+  margin: 0 0 var(--wtt-space-4);
+}
+
+.wtt-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--wtt-space-3);
+  cursor: pointer;
+  padding: var(--wtt-space-3);
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+}
+
+.wtt-checkbox-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 0.2rem;
+  accent-color: var(--wtt-orange);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.wtt-checkbox-row strong {
+  display: block;
+  margin-bottom: var(--wtt-space-1);
+}
+
+.wtt-checkbox-row .wtt-field-hint {
+  margin: 0;
+}
+
+.wtt-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: var(--wtt-space-5);
+  flex-wrap: wrap;
+}
+
+.wtt-cta--secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--wtt-white);
+  box-shadow: none;
+}
+
+.wtt-cta--secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+}

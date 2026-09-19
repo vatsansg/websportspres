@@ -30,6 +30,7 @@ export interface EventSummary {
   status: 'Active' | 'Archive';
   tables: TableConfig[];
   isFavorite: boolean;
+  emailPending: boolean;
 }
 
 export const MAX_FAVORITES_PER_USER = 3;
@@ -48,6 +49,7 @@ export interface EventDetail {
   eventName: string;
   year: number;
   status: 'Active' | 'Archive';
+  emailPending: boolean;
   tables: EventTable[];
 }
 
@@ -88,6 +90,51 @@ export interface ExportEventResponse {
   exportedByRole: string;
   exportTimestamp: string;
   exportGuid: string;
+}
+
+// Web BRD Section 30's exact field list - the Event Log Tab reads straight from the same
+// CSV Section 24/29 already write (see readChangeLogEntries() in assetChangeLog.js).
+export interface LogEntry {
+  sno: number;
+  filename: string;
+  changetimestamp: string;
+  status: 'New' | 'Updated' | 'Deleted';
+  username: string;
+}
+
+export interface EventLogResponse {
+  entries: LogEntry[];
+}
+
+// User feedback (2026-09-19, see workflow.md): "all" batches every unsent change-log
+// entry with no time filter (the original, default behavior) and is the only scope that
+// clears the pending indicator; "session"/"24h" are narrower recaps that never mark
+// anything as sent, so a genuinely-unsent older entry outside the window is never lost.
+export type SendChangeLogEmailScope = 'session' | '24h' | 'all';
+
+export interface SendChangeLogEmailResponse {
+  sent: boolean;
+  entriesSent?: number;
+  scope?: SendChangeLogEmailScope;
+  message?: string;
+}
+
+// User-requested (2026-09-19, see workflow.md): every timestamp shown to a person is in
+// Singapore time (WTT's own timezone), formatted dd/mm/yyyy hh:mm - not the raw UTC ISO
+// string the server stores/returns. Shared by the Event Log Tab (dashboard) and anywhere
+// else a change-log timestamp is displayed.
+export function formatSgt(isoString: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Singapore',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(isoString));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')} SGT`;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -145,5 +192,27 @@ export class EventsService {
 
   async removeFavorite(eventId: string): Promise<void> {
     await firstValueFrom(this.http.delete(`/api/events/${encodeURIComponent(eventId)}/favorite`));
+  }
+
+  // Web BRD Section 30: Event Log Tab. Already sorted newest-first by the server.
+  async getEventLog(eventId: string): Promise<LogEntry[]> {
+    const response = await firstValueFrom(
+      this.http.get<EventLogResponse>(`/api/events/${encodeURIComponent(eventId)}/log`)
+    );
+    return response.entries;
+  }
+
+  // User-requested (2026-09-19, see workflow.md): manually triggered "Send Mail" -
+  // `scope` narrows what gets batched into the one email (see SendChangeLogEmailScope).
+  async sendChangeLogEmail(
+    eventId: string,
+    scope: SendChangeLogEmailScope = 'all'
+  ): Promise<SendChangeLogEmailResponse> {
+    return firstValueFrom(
+      this.http.post<SendChangeLogEmailResponse>(
+        `/api/events/${encodeURIComponent(eventId)}/send-change-log-email`,
+        { scope }
+      )
+    );
   }
 }

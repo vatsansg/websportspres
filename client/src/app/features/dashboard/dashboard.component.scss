@@ -224,3 +224,97 @@
   gap: 0.75rem;
   margin-top: var(--wtt-space-4);
 }
+
+// Step 9 (Web BRD Section 30): Log modal needs to be wider than the shared 560px
+// .wtt-modal default to fit five columns readably, and the table itself scrolls
+// independently so a long log doesn't grow the modal off-screen. Widened further
+// (2026-09-19, user feedback) - 760px still wrapped the Date/Time and Status columns
+// onto a second line; those two are now also fixed to a single line (wtt-log-table__nowrap)
+// instead of only relying on width.
+.wtt-log-modal {
+  max-width: 960px;
+}
+
+.wtt-log-table-wrap {
+  max-height: 50vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid var(--wtt-border);
+  border-radius: var(--wtt-radius-sm);
+}
+
+.wtt-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.wtt-log-table th,
+.wtt-log-table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--wtt-border);
+  word-break: break-word;
+}
+
+.wtt-log-table th {
+  position: sticky;
+  top: 0;
+  background: var(--wtt-surface-raised);
+}
+
+.wtt-log-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.wtt-log-table__nowrap {
+  white-space: nowrap;
+}
+
+.wtt-log-table__file {
+  min-width: 220px;
+}
+
+// User-requested (2026-09-19, see workflow.md): reminder banner shown on the Dashboard
+// (the post-login landing page) whenever "Force Email Send" is on and at least one event
+// has unsent Change Log Email changes - persisted server-side, so it reappears even after
+// the browser was closed without pressing Send Mail.
+.wtt-email-reminder {
+  border: 1px solid var(--wtt-error);
+  margin-bottom: var(--wtt-space-4);
+}
+
+.wtt-email-reminder p {
+  margin: 0 0 var(--wtt-space-2);
+}
+
+.wtt-email-reminder__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wtt-space-2);
+}
+
+.wtt-email-reminder__link {
+  background: transparent;
+  border: 1px solid var(--wtt-error);
+  color: var(--wtt-white);
+  border-radius: var(--wtt-radius-sm);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.wtt-email-reminder__link:hover {
+  background: rgba(255, 82, 82, 0.12);
+}
+
+// Per-row indicator (Dashboard badge, user-requested 2026-09-19) - same wtt-tag base as
+// the existing year tag, colored to match the danger tokens used elsewhere on this page.
+.wtt-tag--pending-email {
+  background: rgba(255, 82, 82, 0.15);
+  color: var(--wtt-error);
+  border: 1px solid rgba(255, 82, 82, 0.4);
+}

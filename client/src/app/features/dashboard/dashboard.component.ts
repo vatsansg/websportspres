@@ -3,16 +3,24 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
-import { EventSummary, EventsService, ExportEventResponse, MAX_FAVORITES_PER_USER } from '../../core/events.service';
+import {
+  EventSummary,
+  EventsService,
+  ExportEventResponse,
+  formatSgt,
+  LogEntry,
+  MAX_FAVORITES_PER_USER,
+} from '../../core/events.service';
+import { SettingsService } from '../../core/settings.service';
 
 // Step 6 (Web BRD Section 25): the real Dashboard/Event List, replacing Step 1's
 // "You're Signed In" placeholder. Active-status events only, sorted by Event ID
-// descending (both already true of GET /api/events - see events/routes.js). The Log tab
-// is still a disabled stub (Step 9's scope). Export Event (Step 7, Section 25.3) is real -
-// see exportEvent() below. Archive (user-requested, 2026-09-18, beyond the BRD's original
-// "reserved for future implementation" scope for this field - see workflow.md) is also
-// real - see the archive* methods below. Favorites (user-requested, 2026-09-19, max 3
-// per user, every role) - see toggleFavorite()/visibleEvents below.
+// descending (both already true of GET /api/events - see events/routes.js). Export Event
+// (Step 7, Section 25.3) is real - see exportEvent() below. Archive (user-requested,
+// 2026-09-18, beyond the BRD's original "reserved for future implementation" scope for
+// this field - see workflow.md) is also real - see the archive* methods below. Favorites
+// (user-requested, 2026-09-19, max 3 per user, every role) - see
+// toggleFavorite()/visibleEvents below. Log (Step 9, Section 30) - see viewLog() below.
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -44,7 +52,26 @@ export class DashboardComponent implements OnInit {
   readonly favoriteError = signal<string | null>(null);
   readonly maxFavorites = MAX_FAVORITES_PER_USER;
 
-  constructor(private eventsService: EventsService, public auth: AuthService, private router: Router) {}
+  // Log (Step 9, Web BRD Section 30): `viewingLogEvent` non-null drives the modal; entries
+  // load once per open (not cached across events).
+  readonly viewingLogEvent = signal<EventSummary | null>(null);
+  readonly logEntries = signal<LogEntry[]>([]);
+  readonly logLoading = signal(false);
+  readonly logError = signal<string | null>(null);
+
+  // User-requested (2026-09-19, see workflow.md): reminds a user at every login (this
+  // page is the post-login landing page) of any event with unsent Change Log Email
+  // changes - persisted server-side, so this reappears even after the browser was closed
+  // without ever pressing Send Mail. Only shown while the global "Force Email Send"
+  // System Setting is on.
+  readonly forceEmailSend = signal(false);
+
+  constructor(
+    private eventsService: EventsService,
+    private settingsService: SettingsService,
+    public auth: AuthService,
+    private router: Router
+  ) {}
 
   async ngOnInit() {
     try {
@@ -54,6 +81,18 @@ export class DashboardComponent implements OnInit {
     } finally {
       this.loading.set(false);
     }
+
+    try {
+      const settings = await this.settingsService.getSettings();
+      this.forceEmailSend.set(settings.forceEmailSend);
+    } catch {
+      // Best-effort - the per-row pending indicator still shows regardless; only the
+      // reminder banner depends on this setting.
+    }
+  }
+
+  get pendingEmailEvents(): EventSummary[] {
+    return this.events().filter((e) => e.emailPending);
   }
 
   // Shared by Export Event (Web BRD Section 25.1: "must not be presented to the Normal
@@ -199,5 +238,30 @@ export class DashboardComponent implements OnInit {
     } finally {
       this.archiving.set(false);
     }
+  }
+
+  // Web BRD Section 30: Event Log Tab. Available to every role (no canManageEvents gate) -
+  // matches the server-side route, which also has no requireRole.
+  async viewLog(event: EventSummary) {
+    this.viewingLogEvent.set(event);
+    this.logError.set(null);
+    this.logLoading.set(true);
+    try {
+      this.logEntries.set(await this.eventsService.getEventLog(event.eventId));
+    } catch {
+      this.logError.set('Could not load the change log for this event. Please try again.');
+    } finally {
+      this.logLoading.set(false);
+    }
+  }
+
+  closeLog() {
+    this.viewingLogEvent.set(null);
+    this.logEntries.set([]);
+    this.logError.set(null);
+  }
+
+  formatSgt(iso: string): string {
+    return formatSgt(iso);
   }
 }

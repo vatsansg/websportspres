@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, adminGuard } from './core/auth.guard';
+import { unsentEmailGuard } from './core/unsent-email.guard';
 
 export const routes: Routes = [
   {
@@ -43,6 +44,7 @@ export const routes: Routes = [
       },
       {
         path: 'asset-upload',
+        canDeactivate: [unsentEmailGuard],
         loadComponent: () =>
           import('./features/asset-upload/asset-upload.component').then((m) => m.AssetUploadComponent),
       },
@@ -60,6 +62,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/user-management/user-management.component').then(
             (m) => m.UserManagementComponent
+          ),
+      },
+      {
+        path: 'system-settings',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/system-settings/system-settings.component').then(
+            (m) => m.SystemSettingsComponent
           ),
       },
     ],

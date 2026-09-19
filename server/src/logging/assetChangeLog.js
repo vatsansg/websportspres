@@ -1,5 +1,6 @@
 import { getContainerClient } from "../storage/blobClient.js";
 import { buildEventFolderName } from "../storage/eventFolders.js";
+import { query } from "../db/pool.js";
 
 // Matches the real templates-container blob's name (extra "s") rather than the Web BRD
 // Section 24 prose's literal "_ledassetchangelog.csv" - same interoperability reasoning as
@@ -25,6 +26,39 @@ function escapeCsvField(value) {
   return value;
 }
 
+// Inverse of escapeCsvField() - Step 9 (Web BRD Section 30) needs to read this file back
+// as structured rows, not just append to it. Handles quoted fields with embedded commas/
+// escaped quotes; every other field here (sno, changetimestamp, status) is never quoted
+// by escapeCsvField() in practice, but a general parser is no more code than a naive
+// split(",") and doesn't silently corrupt a filename that happens to contain a comma.
+function parseCsvLine(line) {
+  const fields = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (inQuotes) {
+      if (char === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      fields.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
+
 async function readExistingWithEtag(blob) {
   try {
     const props = await blob.getProperties();
@@ -48,17 +82,12 @@ export async function appendChangeLogEntry({ year, eventId, eventName, filename,
   const containerClient = getContainerClient(String(year));
   const eventFolder = buildEventFolderName(eventId, eventName);
   const blob = containerClient.getBlockBlobClient(`${eventFolder}/${CHANGELOG_FILENAME}`);
+  const timestamp = new Date().toISOString();
 
   for (let attempt = 1; attempt <= MAX_WRITE_ATTEMPTS; attempt++) {
     const { rows, etag } = await readExistingWithEtag(blob);
     const nextSno = rows.length + 1;
-    const newRow = [
-      nextSno,
-      escapeCsvField(filename),
-      new Date().toISOString(),
-      status,
-      escapeCsvField(username),
-    ].join(",");
+    const newRow = [nextSno, escapeCsvField(filename), timestamp, status, escapeCsvField(username)].join(",");
     const csv = [HEADER, ...rows, newRow].join("\n") + "\n";
 
     try {
@@ -66,6 +95,14 @@ export async function appendChangeLogEntry({ year, eventId, eventName, filename,
         blobHTTPHeaders: { blobContentType: "text/csv" },
         conditions: etag ? { ifMatch: etag } : { ifNoneMatch: "*" },
       });
+      // Step 9 (Web BRD Section 29, redesigned 2026-09-19 per user feedback - see
+      // workflow.md): every successful change-log write marks the event as having an
+      // unsent Change Log Email, in the one place every call site already funnels
+      // through, rather than touching each of this app's dozen-plus
+      // appendChangeLogEntry() call sites individually. The email itself is no longer
+      // sent automatically here - see events/routes.js's POST .../send-change-log-email,
+      // triggered manually by the user's own "Send Mail" action.
+      await query("UPDATE events SET email_pending = TRUE WHERE event_id = ?", [eventId]);
       return;
     } catch (err) {
       const isConcurrencyConflict = err.statusCode === 412;
@@ -73,4 +110,21 @@ export async function appendChangeLogEntry({ year, eventId, eventName, filename,
       throw err;
     }
   }
+}
+
+/**
+ * Step 9 (Web BRD Section 30): reads back the event's full change log as structured
+ * rows, for the Event Log Tab. Read-only view of the exact same data
+ * appendChangeLogEntry() writes - "it does not introduce a separate storage location or
+ * data source" (Section 30's own text).
+ */
+export async function readChangeLogEntries({ year, eventId, eventName }) {
+  const containerClient = getContainerClient(String(year));
+  const eventFolder = buildEventFolderName(eventId, eventName);
+  const blob = containerClient.getBlockBlobClient(`${eventFolder}/${CHANGELOG_FILENAME}`);
+  const { rows } = await readExistingWithEtag(blob);
+  return rows.map((row) => {
+    const [sno, filename, changetimestamp, status, username] = parseCsvLine(row);
+    return { sno: Number(sno), filename, changetimestamp, status, username };
+  });
 }
