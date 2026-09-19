@@ -52,28 +52,39 @@
   box-shadow: none;
 }
 
+// Independent UI/UX review, 2026-09-19: the previous card used the app's standard
+// var(--wtt-border) (a very dark grey, close to the black page background) at only 1px,
+// with no accent or shadow - adjacent cards had almost no visible separation and didn't
+// read as distinct, professional "cards" the way every other .wtt-card in this app does.
+// Brought in line with that established pattern: an orange top accent (same as .wtt-card
+// globally), a lighter/more visible border, a drop shadow for real depth, and more
+// breathing room between cards.
 .wtt-trigger-card {
   background: var(--wtt-surface-raised);
-  border: 1px solid var(--wtt-border);
-  border-radius: var(--wtt-radius-sm);
-  padding: var(--wtt-space-4);
-  margin-bottom: var(--wtt-space-4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 3px solid var(--wtt-orange);
+  border-radius: var(--wtt-radius);
+  padding: var(--wtt-space-5);
+  margin-bottom: var(--wtt-space-6);
+  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.7);
 }
 
 .wtt-trigger-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--wtt-space-3);
+  margin-bottom: var(--wtt-space-4);
+  padding-bottom: var(--wtt-space-3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wtt-trigger-index {
   font-weight: 700;
   font-family: var(--wtt-font-display);
   text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
-  opacity: 0.7;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  color: var(--wtt-orange);
 }
 
 .wtt-remove-btn {
@@ -141,26 +152,32 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   opacity: 0.75;
-  margin: var(--wtt-space-3) 0 var(--wtt-space-2);
-  border-top: 1px solid var(--wtt-border);
-  padding-top: var(--wtt-space-3);
+  margin: var(--wtt-space-4) 0 var(--wtt-space-3);
+  padding-top: var(--wtt-space-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+// Indented and left-bordered in the teal brand accent, so a glance down the card makes
+// it obvious these are nested "File Rules" belonging to the trigger type above, not
+// separate top-level cards of their own.
 .wtt-file-rule {
-  background: #0d0d0d;
-  border: 1px solid var(--wtt-border);
+  background: #0a0a0a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--wtt-teal);
   border-radius: var(--wtt-radius-sm);
-  padding: var(--wtt-space-3);
-  margin-bottom: var(--wtt-space-2);
+  padding: var(--wtt-space-4);
+  margin: 0 0 var(--wtt-space-3) var(--wtt-space-3);
 }
 
 .wtt-file-rule__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   opacity: 0.6;
-  margin-bottom: var(--wtt-space-2);
+  margin-bottom: var(--wtt-space-3);
 }
 
 .wtt-actions {

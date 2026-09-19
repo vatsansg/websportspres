@@ -4,7 +4,7 @@ import { body, validationResult } from "express-validator";
 import { query } from "../db/pool.js";
 import { requireSession } from "../auth/session.js";
 import { requireRole } from "../auth/requireRole.js";
-import { searchDirectoryUsers, DIRECTORY_DOMAIN } from "./graphClient.js";
+import { searchDirectoryUsers } from "./graphClient.js";
 
 // User Management (Step 5 follow-up, 2026-09-18, per the user's explicit request):
 // Administrator/NormalUser accounts are Azure AD-authenticated but no longer
@@ -31,8 +31,6 @@ const userMutationLimiter = rateLimit({
   keyGenerator: (req) => req.user?.username ?? req.ip,
   message: { error: "Too many user management changes recently. Please try again later." },
 });
-
-const EMAIL_DOMAIN_PATTERN = new RegExp(`@${DIRECTORY_DOMAIN.replace(".", "\\.")}$`, "i");
 
 function assertRoleAllowed(actingRole, targetRole, res) {
   if (!["Administrator", "NormalUser"].includes(targetRole)) {
@@ -86,9 +84,12 @@ usersRouter.get("/directory-search", async (req, res) => {
 usersRouter.post(
   "/",
   userMutationLimiter,
-  body("username").isString().trim().notEmpty().matches(EMAIL_DOMAIN_PATTERN).withMessage(
-    `Email must be in the ${DIRECTORY_DOMAIN} domain`
-  ),
+  // Deliberately not domain-restricted (see graphClient.js's comment) - real WTT
+  // collaborators are frequently Azure AD B2B guest accounts with an external email.
+  // The actual security boundary is Azure AD sign-in itself (auth/routes.js's
+  // /aad/session): adding a row here only makes someone *eligible*, it never bypasses
+  // needing them to actually authenticate as that Azure AD identity.
+  body("username").isString().trim().notEmpty().isEmail().withMessage("Must be a valid email address"),
   body("role").isString().trim().notEmpty(),
   body("displayName").optional().isString().trim(),
   async (req, res) => {

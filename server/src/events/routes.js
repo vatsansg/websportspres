@@ -61,6 +61,18 @@ const eventExportLimiter = rateLimit({
   message: { error: "Too many exports recently. Please try again later." },
 });
 
+// User-requested feature (2026-09-18, beyond the original BRD scope - see workflow.md):
+// Archive is a one-way (from the UI's perspective) status change, same role gate as
+// Export Event, same rate-limiter shape as every other mutating events route.
+const eventArchiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many archive actions recently. Please try again later." },
+});
+
 // Blob paths are built directly from event_id/event_name (see storage/eventFolders.js's
 // buildEventFolderName), so a "/" here would silently create nested "folders" instead of
 // the intended single event folder, and other control characters are invalid in blob names.
@@ -236,7 +248,9 @@ eventsRouter.post(
 // Step 3's Asset Upload picker (eventId/eventName/year/status), and reused as-is for
 // Step 6's real Dashboard/Event List, which additionally needs each row's table/LED
 // summary - added here as an extra `tables` field rather than a second endpoint, since
-// it's a pure addition existing consumers already ignore.
+// it's a pure addition existing consumers already ignore. `isFavorite` (user-requested,
+// 2026-09-19) is the signed-in user's own favorite state for that event - never another
+// user's, so two people never see each other's favorites.
 eventsRouter.get("/", requireSession, async (req, res) => {
   const rows = await query(
     "SELECT event_id, event_name, year, status FROM events WHERE status = 'Active' ORDER BY event_id DESC"
@@ -259,6 +273,10 @@ eventsRouter.get("/", requireSession, async (req, res) => {
       mainLed: !!t.main_led,
     });
   }
+  const favoriteRows = await query("SELECT event_id FROM user_favorites WHERE username = ?", [
+    req.user.username,
+  ]);
+  const favoriteIds = new Set(favoriteRows.map((f) => f.event_id));
   res.json(
     rows.map((r) => ({
       eventId: r.event_id,
@@ -266,8 +284,66 @@ eventsRouter.get("/", requireSession, async (req, res) => {
       year: r.year,
       status: r.status,
       tables: tablesByEvent.get(r.event_id) ?? [],
+      isFavorite: favoriteIds.has(r.event_id),
     }))
   );
+});
+
+// User-requested feature (2026-09-19, beyond the original BRD scope - see workflow.md):
+// a personal favorite-events list, max 3 per user, available to every role. Toggled from
+// the Dashboard. `favoriteLimiter` reuses the same shape as every other mutating events
+// route.
+const favoriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.username ?? req.ip,
+  message: { error: "Too many favorite changes recently. Please try again later." },
+});
+
+const MAX_FAVORITES_PER_USER = 3;
+
+eventsRouter.post("/:eventId/favorite", requireSession, favoriteLimiter, async (req, res) => {
+  const eventRows = await query("SELECT event_id FROM events WHERE event_id = ?", [req.params.eventId]);
+  if (eventRows.length === 0) {
+    return res.status(404).json({ error: "Event not found" });
+  }
+
+  const existing = await query("SELECT id FROM user_favorites WHERE username = ? AND event_id = ?", [
+    req.user.username,
+    req.params.eventId,
+  ]);
+  if (existing.length > 0) {
+    return res.json({ eventId: req.params.eventId, isFavorite: true });
+  }
+
+  const countRows = await query("SELECT COUNT(*) AS n FROM user_favorites WHERE username = ?", [
+    req.user.username,
+  ]);
+  if (countRows[0].n >= MAX_FAVORITES_PER_USER) {
+    return res.status(409).json({ error: `You can only favorite up to ${MAX_FAVORITES_PER_USER} events. Remove one first.` });
+  }
+
+  try {
+    await query("INSERT INTO user_favorites (username, event_id) VALUES (?, ?)", [
+      req.user.username,
+      req.params.eventId,
+    ]);
+  } catch (err) {
+    // TOCTOU: two rapid clicks (or two tabs) racing the same add - the loser just finds
+    // it's already favorited, same non-error outcome as the existing-row check above.
+    if (err.code !== "ER_DUP_ENTRY") throw err;
+  }
+  res.json({ eventId: req.params.eventId, isFavorite: true });
+});
+
+eventsRouter.delete("/:eventId/favorite", requireSession, favoriteLimiter, async (req, res) => {
+  await query("DELETE FROM user_favorites WHERE username = ? AND event_id = ?", [
+    req.user.username,
+    req.params.eventId,
+  ]);
+  res.json({ eventId: req.params.eventId, isFavorite: false });
 });
 
 eventsRouter.get("/:eventId", requireSession, async (req, res) => {
@@ -709,5 +785,38 @@ eventsRouter.post(
     }
 
     res.json(exportContent);
+  }
+);
+
+// Archive (user-requested, 2026-09-18, beyond the original BRD scope - Web BRD Section 5
+// itself explicitly says the archiving feature "is reserved for future implementation
+// and is not built as part of this scope," but the user has now explicitly asked for it;
+// documented as a deliberate scope extension in workflow.md, not a silent BRD deviation).
+// SuperAdmin/Administrator only - same role gate as Export Event, since both are
+// event-list-level actions the Normal User must never see. One-way from the UI's
+// perspective: there is no unarchive action built (not requested), though the data
+// itself is untouched - an archived event simply stops appearing in GET /api/events'
+// existing `WHERE status = 'Active'` filter, so no changes were needed there.
+eventsRouter.patch(
+  "/:eventId/archive",
+  requireSession,
+  requireRole("SuperAdmin", "Administrator"),
+  eventArchiveLimiter,
+  async (req, res) => {
+    const eventRows = await query("SELECT event_id, status FROM events WHERE event_id = ?", [
+      req.params.eventId,
+    ]);
+    if (eventRows.length === 0) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+    if (eventRows[0].status === "Archive") {
+      return res.status(409).json({ error: "This event is already archived" });
+    }
+
+    await query("UPDATE events SET status = 'Archive', updated_by = ? WHERE event_id = ?", [
+      req.user.username,
+      req.params.eventId,
+    ]);
+    res.json({ eventId: req.params.eventId, status: "Archive" });
   }
 );

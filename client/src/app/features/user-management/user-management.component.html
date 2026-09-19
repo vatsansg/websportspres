@@ -8,7 +8,7 @@
   <div class="wtt-card wtt-add-card">
     <h2>Add User</h2>
     <div class="wtt-field">
-      <label>Search {{ 'worldtabletennis.com' }} directory</label>
+      <label>Search the WTT Azure AD directory</label>
       <input
         type="text"
         [ngModel]="searchQuery()"
@@ -16,6 +16,7 @@
         placeholder="Type a name or email..."
         autocomplete="off"
       />
+      <span class="wtt-field-hint">Includes guest accounts (e.g. partners signed in with a non-WTT email).</span>
       @if (searching()) {
         <span class="wtt-field-hint">Searching...</span>
       }
@@ -27,7 +28,12 @@
           @for (c of candidates(); track c.azureAdObjectId) {
             <li>
               <button type="button" (click)="pickCandidate(c)">
-                <strong>{{ c.displayName }}</strong>
+                <strong>
+                  {{ c.displayName }}
+                  @if (c.isGuest) {
+                    <span class="wtt-tag wtt-tag--guest">Guest</span>
+                  }
+                </strong>
                 <span>{{ c.email }}</span>
               </button>
             </li>
@@ -35,14 +41,16 @@
         </ul>
       }
       @if (selectedCandidate) {
-        <span class="wtt-tag">Selected: {{ selectedCandidate.displayName }} ({{ selectedCandidate.email }})</span>
+        <span class="wtt-tag">
+          Selected: {{ selectedCandidate.displayName }} ({{ selectedCandidate.email }}){{ selectedCandidate.isGuest ? ' · Guest' : '' }}
+        </span>
       }
     </div>
 
     @if (!selectedCandidate) {
       <div class="wtt-field">
         <label>Or type their exact email <span class="wtt-optional-mark">(if search doesn't find them)</span></label>
-        <input type="email" [(ngModel)]="manualEmail" placeholder="name@worldtabletennis.com" />
+        <input type="email" [(ngModel)]="manualEmail" placeholder="name@example.com" />
       </div>
     }
 

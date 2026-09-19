@@ -190,15 +190,35 @@ a:hover {
 
 /* ---------- Status messages ---------- */
 
+// Deliberately block, not flex (see git history for why this changed 2026-09-18): flex
+// with no explicit flex-direction lays out every *child node* of the element as a
+// separate row item - fine for a single short text node, but it silently shreds any
+// message containing inline elements (e.g. `Event <strong>1234</strong> was saved`) into
+// disconnected fragments arranged left-to-right instead of flowing as one sentence, and
+// shreds multiple block children (e.g. a <p> followed by a <ul>) into side-by-side
+// columns instead of stacking. Found live in the Export Event result panel and present
+// in several other places that were never visually re-checked after picking up
+// multi-element content. No usage in this app pairs these with an icon element, so there
+// was never a real reason for flex here.
 .wtt-error,
 .wtt-success {
-  display: flex;
-  align-items: center;
-  gap: var(--wtt-space-2);
+  display: block;
   font-size: 0.85rem;
+  line-height: 1.6;
   padding: var(--wtt-space-3);
   border-radius: var(--wtt-radius-sm);
   margin: 0 0 var(--wtt-space-4);
+}
+
+.wtt-error ul,
+.wtt-success ul {
+  margin: var(--wtt-space-2) 0 0;
+  padding-left: 1.2rem;
+}
+
+.wtt-error p,
+.wtt-success p {
+  margin: 0;
 }
 
 .wtt-error {

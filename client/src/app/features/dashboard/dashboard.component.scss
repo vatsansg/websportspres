@@ -28,6 +28,27 @@
   gap: var(--wtt-space-4);
 }
 
+.wtt-filter-bar {
+  margin-bottom: var(--wtt-space-4);
+}
+
+.wtt-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--wtt-space-2);
+  font-size: 0.85rem;
+  opacity: 0.85;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.wtt-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--wtt-orange);
+  cursor: pointer;
+}
+
 .wtt-event-row {
   display: flex;
   align-items: center;
@@ -35,6 +56,31 @@
   gap: var(--wtt-space-4);
   padding: var(--wtt-space-4) var(--wtt-space-6);
   flex-wrap: wrap;
+}
+
+.wtt-favorite-star {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 var(--wtt-space-1) 0 0;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.wtt-favorite-star:hover:not(:disabled) {
+  color: rgba(255, 176, 71, 0.7);
+  transform: scale(1.1);
+}
+
+.wtt-favorite-star--active {
+  color: var(--wtt-orange);
+}
+
+.wtt-favorite-star:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .wtt-event-row__title {
@@ -84,6 +130,23 @@
   width: auto;
 }
 
+// Archive - a real (not just visually-red) destructive action, so its buttons use the
+// error color rather than the brand orange, consistent with how other destructive
+// confirmations in this app (e.g. user-management's Remove) are styled.
+.wtt-cta--danger {
+  background: var(--wtt-error);
+  color: var(--wtt-white);
+}
+
+.wtt-cta--danger-outline {
+  border-color: rgba(255, 82, 82, 0.5);
+  color: var(--wtt-error);
+}
+
+.wtt-cta--danger-outline:hover:not(:disabled) {
+  background: rgba(255, 82, 82, 0.1);
+}
+
 // Export result modal - same tokens as edit-event's confirmation modal.
 .wtt-modal-backdrop {
   position: fixed;
@@ -126,9 +189,13 @@
   padding: 0 0.25rem;
 }
 
+// Independent UI/UX review, 2026-09-18: the value box and Copy button previously had
+// different padding/font-size, so their edges didn't quite line up even with
+// align-items: center. Giving both an explicit shared min-height fixes it precisely
+// instead of relying on incidentally-matching padding.
 .wtt-guid-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--wtt-space-3);
 }
 
@@ -138,9 +205,18 @@
   background: #111;
   border: 1px solid var(--wtt-border);
   border-radius: var(--wtt-radius-sm);
-  padding: 0.6rem 0.8rem;
+  padding: 0 0.8rem;
+  min-height: 2.6rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
   flex: 1;
   word-break: break-all;
+}
+
+.wtt-guid-row .wtt-cta--small {
+  min-height: 2.6rem;
+  box-sizing: border-box;
 }
 
 .wtt-actions {

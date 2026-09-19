@@ -7,6 +7,19 @@
     <a class="wtt-cta" routerLink="/create-event">+ Create Event</a>
   </div>
 
+  @if (!loading() && !error() && events().length > 0) {
+    <div class="wtt-filter-bar">
+      <label class="wtt-checkbox">
+        <input type="checkbox" [checked]="favoritesOnly()" (change)="favoritesOnly.set(!favoritesOnly())" />
+        Favorites only ({{ favoriteCount }}/{{ maxFavorites }})
+      </label>
+    </div>
+  }
+
+  @if (favoriteError()) {
+    <p class="wtt-error" role="alert">{{ favoriteError() }}</p>
+  }
+
   @if (loading()) {
     <p class="wtt-field-hint">Loading events...</p>
   } @else if (error()) {
@@ -16,10 +29,25 @@
       <p>No active events yet.</p>
       <a class="wtt-cta" routerLink="/create-event">Create your first event</a>
     </div>
+  } @else if (visibleEvents.length === 0) {
+    <div class="wtt-card wtt-empty-card">
+      <p>No favorite events yet. Star an event below to pin it here.</p>
+    </div>
   } @else {
     <div class="wtt-event-list">
-      @for (event of events(); track event.eventId) {
+      @for (event of visibleEvents; track event.eventId) {
         <div class="wtt-card wtt-event-row">
+          <button
+            class="wtt-favorite-star"
+            type="button"
+            [class.wtt-favorite-star--active]="event.isFavorite"
+            [disabled]="togglingFavoriteId() === event.eventId"
+            [attr.aria-label]="event.isFavorite ? 'Remove from favorites' : 'Add to favorites'"
+            [title]="event.isFavorite ? 'Remove from favorites' : 'Add to favorites (max ' + maxFavorites + ')'"
+            (click)="toggleFavorite(event)"
+          >
+            {{ event.isFavorite ? '★' : '☆' }}
+          </button>
           <div class="wtt-event-row__main">
             <div class="wtt-event-row__title">
               <span class="wtt-event-id">{{ event.eventId }}</span>
@@ -35,7 +63,7 @@
             <a class="wtt-cta wtt-cta--secondary wtt-cta--small" [routerLink]="['/events', event.eventId, 'edit']">
               Configure
             </a>
-            @if (canExport) {
+            @if (canManageEvents) {
               <button
                 class="wtt-cta wtt-cta--secondary wtt-cta--small"
                 type="button"
@@ -51,6 +79,15 @@
             <button class="wtt-cta wtt-cta--secondary wtt-cta--small" type="button" disabled title="Log is implemented in Step 9">
               Log
             </button>
+            @if (canManageEvents) {
+              <button
+                class="wtt-cta wtt-cta--secondary wtt-cta--small wtt-cta--danger-outline"
+                type="button"
+                (click)="requestArchive(event)"
+              >
+                Archive
+              </button>
+            }
           </div>
         </div>
       }
@@ -85,6 +122,56 @@
         <div class="wtt-actions">
           <button class="wtt-cta" type="button" (click)="closeExportResult()">Close</button>
         </div>
+      </div>
+    </div>
+  }
+
+  @if (archivingEvent(); as event) {
+    <div class="wtt-modal-backdrop">
+      <div class="wtt-modal wtt-confirm-modal">
+        @if (archivePhase() === 1) {
+          <div class="wtt-modal__header">
+            <h2>Archive Event?</h2>
+          </div>
+          <p>
+            Do you really want to archive <strong>{{ event.eventId }} — {{ event.eventName }}</strong>? Once
+            archived, you will not be able to access the event or its files through this application.
+          </p>
+          @if (archiveError()) {
+            <p class="wtt-error" role="alert">{{ archiveError() }}</p>
+          }
+          <div class="wtt-actions">
+            <button class="wtt-cta" type="button" (click)="confirmArchivePhase1()">Yes, Continue</button>
+            <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancelArchive()">Cancel</button>
+          </div>
+        } @else if (archivePhase() === 2) {
+          <div class="wtt-modal__header">
+            <h2>Confirm Archive</h2>
+          </div>
+          <p>
+            You have decided to take <strong>{{ event.eventId }} — {{ event.eventName }}</strong> off further
+            asset upload. Do confirm again — this cannot be undone through the UI.
+          </p>
+          @if (archiveError()) {
+            <p class="wtt-error" role="alert">{{ archiveError() }}</p>
+          }
+          <div class="wtt-actions">
+            <button
+              class="wtt-cta wtt-cta--danger"
+              type="button"
+              (click)="confirmArchivePhase2()"
+              [disabled]="archiving()"
+            >
+              @if (archiving()) {
+                <span class="wtt-spinner" aria-hidden="true"></span>
+              }
+              Yes, Archive Event
+            </button>
+            <button class="wtt-cta wtt-cta--secondary" type="button" (click)="cancelArchive()" [disabled]="archiving()">
+              Cancel
+            </button>
+          </div>
+        }
       </div>
     </div>
   }

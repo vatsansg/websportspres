@@ -20,6 +20,7 @@ export interface DirectoryCandidate {
   displayName: string;
   email: string;
   userPrincipalName: string;
+  isGuest: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

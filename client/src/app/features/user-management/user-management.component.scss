@@ -44,6 +44,14 @@
   font-weight: 400;
 }
 
+.wtt-tag--guest {
+  margin-left: 0.4rem;
+  font-size: 0.65rem;
+  color: var(--wtt-orange);
+  background: rgba(255, 107, 0, 0.12);
+  border-color: rgba(255, 107, 0, 0.35);
+}
+
 .wtt-candidate-list {
   list-style: none;
   margin: var(--wtt-space-2) 0 0;
