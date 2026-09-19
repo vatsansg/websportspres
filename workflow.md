@@ -338,6 +338,6 @@ User feedback after using the app live: (1) add an Archive button to the Dashboa
 | 6 | Complete (tracked under Step 5) | 2026-09-19 | see Step 5 |
 | 7 | Complete | 2026-09-19 | `267c915` (see Step 5's commit list) |
 | 8 | Complete (already satisfied by Step 3, recognized 2026-09-19) | 2026-09-17 (via Step 3) | `29f702d` (Step 3's own commit) |
-| 9 | Complete | 2026-09-19 | *(commit pending - see below)* |
+| 9 | Complete | 2026-09-19 | `6767765` (committed directly to `main`) |
 
 All 9 steps of the original Implementation Sequence are now complete on the `dev` slot (Step 8 needed no new code - Step 3 already satisfied it, and is already live in production). Step 9 has not yet been deployed to production, per the user's own explicit choice to hold that back pending a separate go-ahead (see Step 9's write-up above).
