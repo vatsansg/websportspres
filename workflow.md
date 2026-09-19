@@ -186,7 +186,7 @@ Status values: `Not started` / `In progress` / `Awaiting user go-ahead` / `Compl
 - **User go-ahead:** 2026-09-17 — "Commit Step 4" (no separate testing round requested; user opted to test Steps 4/5/6 together). Committed directly to `main` (`294bb4c`) — no dedicated `step-4-*` branch was cut this session (a process deviation from Steps 1-3's branch-per-step pattern, noted here rather than silently done differently), then pushed to `origin/main`.
 
 ## Step 5 — Event Configuration – Add / Change / Delete
-- **Status:** In progress (combined with Step 6 per the user's explicit instruction, 2026-09-17 — "for Step 5 and 6 can be combined... no need for me to give the go ahead... I will test together"). Code is deployed and live-verified on the `dev` slot, QA Test Case and Security Checklist docs are now written (see below). Not calling this "Complete" until the user has done their own testing pass, per their own stated plan.
+- **Status:** Complete (user go-ahead given 2026-09-19 — "Commit and then move to next step," after three rounds of live feedback and fixes documented below). Combined with Step 6 per the user's explicit instruction, 2026-09-17. Two QA cases remain genuinely not-run (see `docs/QA_Web_Step5_EventConfiguration.md`'s "Not yet run" section) - both require real Azure AD test credentials this session never had access to, flagged clearly rather than silently marked Pass; not a reason to withhold sign-off since the user made the call with that gap known.
 - **Completed on:**
 - **What was built (this pass, 2026-09-17):**
   - **Backend - Event edit (`server/src/events/routes.js`)**: `PUT /api/events/:eventId` - one combined edit endpoint (same "full desired state" shape as creation), covering Event ID/Name/Year rename, table add/remove, and per-table LED destination enable/disable. Independently re-derives the diff between current DB state and the request every time (never trusts a client-supplied list of "what's already confirmed"), and returns `409 { confirmations: [...] }` without changing anything if a destructive change needs confirming and the caller hasn't set `confirmed: true` - table deletion always confirms (Section 9, unconditional); rename and LED-disable only confirm when `listRealFiles()` finds real (non-scaffolding) content (Section 8, conditional). `GET /api/events` (the Step 3 event picker) now also returns each event's `tables` summary, reused as-is for the Dashboard rather than adding a second endpoint.
@@ -251,11 +251,11 @@ User feedback after using the app live: (1) add an Archive button to the Dashboa
   7. **Dashboard and Event List (Step 6, Section 25)**: replaces the Step 1 placeholder "You're Signed In" card with a real Event List - Active-status events only, sorted by Event ID descending, each row showing Event ID/Name/table-and-LED summary, with Upload Assets (event pre-selected, Section 25.2), a Configure/Edit action (this step's own edit UI), Export Event (Super Admin/Admin only per Section 2.1, **stubbed disabled this step** - the actual export logic is Step 7's scope, kept out of this step's boundary rather than building it early), and a Log tab placeholder (Step 9's dependency, same reasoning).
 
 ## Step 6 — Dashboard and Event List
-- **Status:** Combined with Step 5 per the user's explicit instruction, 2026-09-17 — tracked entirely under Step 5's section above (item 7 in the kickoff understanding) rather than duplicated here.
+- **Status:** Complete (tracked under Step 5, same 2026-09-19 go-ahead) — combined with Step 5 per the user's explicit instruction, 2026-09-17, tracked entirely under Step 5's section above (item 7 in the kickoff understanding) rather than duplicated here.
 - **Includes:** Event list (Active-status filter), Upload Assets shortcut, Export Event action (stubbed - Step 7's scope), Log tab (stubbed - Step 9's scope).
 
 ## Step 7 — Export Functionality
-- **Status:** In progress (deployed to `dev`, backend live-verified this session; frontend not visually re-verified due to a recurring browser-automation tooling issue — see below. Pending the user's own testing pass, same as Step 5/6.)
+- **Status:** Complete (user go-ahead given 2026-09-19, same "Commit and then move to next step" as Step 5/6). Frontend (download trigger, GUID modal, Copy button) was verified live via the independent UI/UX review's own subagent pass, not just backend curl testing - see below.
 - **Includes:** JSON export, ExportGUID generation, `_GUID.json`.
 - **Completed on:**
 - **What was built, 2026-09-18:**
@@ -311,8 +311,8 @@ User feedback after using the app live: (1) add an Archive button to the Dashboa
 | 2 | Complete | 2026-09-17 | `a0d2ee1` (merged and pushed to `origin/main`) |
 | 3 | Complete | 2026-09-17 | `29f702d` (merged and pushed to `origin/main`) |
 | 4 | Complete | 2026-09-17 | `294bb4c` (committed directly to `main`, pushed to `origin/main`) |
-| 5 | In progress (committed and pushed; pending the user's own test pass) | | `13f63f7` (committed directly to `main`; pushed to `origin/main` — a first push attempt was blocked by Claude Code's own safety layer, same as Step 1, but a later retry in the same session succeeded) |
-| 6 | In progress (tracked under Step 5) | | |
-| 7 | In progress (committed and pushed; pending the user's own test pass) | | `267c915` (committed directly to `main`, pushed to `origin/main`) |
+| 5 | Complete | 2026-09-19 | `13f63f7`, `267c915`, `d999e25`, `c5f507a` (all committed directly to `main`, all pushed to `origin/main` — a first push attempt was blocked by Claude Code's own safety layer, same as Step 1, but a later retry in the same session succeeded) |
+| 6 | Complete (tracked under Step 5) | 2026-09-19 | see Step 5 |
+| 7 | Complete | 2026-09-19 | `267c915` (see Step 5's commit list) |
 | 8 | Not started | | |
 | 9 | Not started | | |
